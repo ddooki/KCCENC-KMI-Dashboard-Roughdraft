@@ -1319,14 +1319,14 @@ const GONGJEONG = {
 
     /* ── 3.1 하도급 수행 리스크 발생률 ── */
     "3-1": [
-      { type:"metrics", accent:"miss", title:"하도급 수행 리스크 발생률", sub:"협력사 공정차질·품질·재무 리스크 발생 비율 | 엑셀 백데이터(02.03.02) 연동", badge:{lv:"danger",txt:"경보"},
+      { type:"metrics", accent:"miss", title:"하도급 수행 리스크 발생률", sub:"2025년 자재/외주 협력업체 정기평가 등급 및 부실위험 비율 모니터링", hasOutTab:true, badge:{lv:"danger",txt:"경보"},
         boxes:[
-          {lbl:"리스크 발생률", val:"16.9%", cls:"danger"},
-          {lbl:"위험 협력사", val:"120개사", cls:"danger"},
-          {lbl:"전체 유효 협력사", val:"711개사"},
-          {lbl:"기준선", val:"8.0%"},
+          {lbl:"평가 대상 업체 수", val:"260개사"},
+          {lbl:"D·E등급 위험업체", val:"9개사 (3.5%)", cls:"danger"},
+          {lbl:"D등급 (경고 대상)", val:"7개사 (2.7%)", cls:"warn"},
+          {lbl:"E등급 (등록제외)", val:"2개사 (0.8%)", cls:"danger"},
         ],
-        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 711개 유효 협력사 중 재무위험·공정차질 리스크 120개사(16.9%) 감지 — 기준선(8.0%) 초과."},
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 2025년 정기평가 260개사 중 D등급 7개사(2.7%), E등급 2개사(0.8%) 발생 — 부실·납기지연 위험업체 발주 제한 및 대체업체 확보 필요."},
         chart:{kind:"line", maxY:20, labels:["1월","2월","3월","4월","5월","6월"],
           series:[
             {data:[8,8,8,8,8,8], color:"#7e93ab", dash:"5,5"},
@@ -1334,16 +1334,19 @@ const GONGJEONG = {
           ],
           legend:[{c:"#7e93ab",t:"╌╌ 기준선(8%)"},{c:"#ff6969",t:"━━ 리스크 발생률"}]},
       },
-      { type:"list", accent:"miss", title:"하도급 타절 및 직영/후속업체 현황", sub:"회생절차·가압류·견적오류 협력사 타절 및 공사 만회 현황 모니터링", badge:{lv:"danger",txt:"타절 5건"},
-        listTitle:"타절 및 직영/후속업체 처리 현황 (수익성/공정 영향)",
+      { type:"list", accent:"miss", title:"하도급 리스크 발생 현황", sub:"2025년 정기평가 D·E등급 부실위험 및 경고·등록제외 심사 대상 업체", badge:{lv:"danger",txt:"위험 9개사"},
         items:[
-          {st:"fail", name:"안성당목리물류센터 (전기공사) — 일렉파워(주) 회생절차 개시신청, 타절 후 직영공사 전환 (잔여 42.8억)", amt:"직영전환", cls:"red"},
-          {st:"fail", name:"평택 사무3동 신축 (조적미장) — (주)영진미방 견적오류 공사포기, 타절 후 신규업체 재선정 발주 중 (25.18억)", amt:"재선정중", cls:"red"},
-          {st:"fail", name:"아산 벨코어 스위첸 (석공사) — 태원석재(주) 채권가압류, 임의타절 후 재발주 (후속 견적 +1.0억 예산초과)", amt:"예산초과", cls:"red"},
-          {st:"warn", name:"대전 에테르 스위첸 (일반배관) — (주)원엔지니어링 회생절차 개시신청, 합의타절 후 수의계약 (33.25억)", amt:"수의계약", cls:"amber"},
-          {st:"warn", name:"아산 벨코어 / 대전 에테르 (인테리어) — (주)가우디자인 가압류·강제집행(1.58억), 합의타절 후 수의계약 (3.33억)", amt:"수의계약", cls:"amber"},
+          {st:"fail", name:"(주)유성애드 (건축자재 · 사인물) — E등급 (57.0점) | 낙찰률 저조(2/0), 가격경쟁력 부족, 재무불량(현금C-), 납품지연", amt:"등록제외", cls:"red"},
+          {st:"fail", name:"(주)플지공조시스템 (설비자재 · 시스템메이커) — E등급 (42.0점) | 대전 비엘리오 불성실 대응 (대출/납품지연)", amt:"등록제외", cls:"red"},
+          {st:"warn", name:"(주)이반트 (공통자재 · 경질우레탄폼보드) — D등급 (69.0점) | 폐업으로 인한 재무등급 누락", amt:"경고대상", cls:"amber"},
+          {st:"warn", name:"세원공조산업기계(주) (설비자재 · 공조기외) — D등급 (68.3점) | 평택/과천 불성실 대응, 안전보건 수칙 미준수", amt:"경고대상", cls:"amber"},
+          {st:"warn", name:"(주)삼화에이스 (설비자재 · 공조기외) — D등급 (68.0점) | 안전 및 보건 수칙 미준수", amt:"경고대상", cls:"amber"},
+          {st:"warn", name:"(주)문성에어스 (설비자재 · 공조기외) — D등급 (67.0점) | 안전 및 보건 수칙 미준수", amt:"경고대상", cls:"amber"},
+          {st:"warn", name:"(주)제이투테크 (건축자재 · 하향식 피난사다리) — D등급 (67.0점) | 낙찰률 저조(2/0), 가격경쟁력 부족", amt:"경고대상", cls:"amber"},
+          {st:"warn", name:"(주)제일공조공화시스템 (설비자재 · 주차장유인팬) — D등급 (61.0점) | 낙찰률 저조(2/0), 가격경쟁력 부족", amt:"경고대상", cls:"amber"},
+          {st:"warn", name:"중앙원엔티(주) (전기자재 · 수배전반) — D등급 (60.5점) | 아산 벨코어 불성실 대응 (대응/납품지연)", amt:"경고대상", cls:"amber"},
         ],
-        note:"* 협력사 회생/가압류/견적오류 발생 시 즉시 타절 및 직영/후속업체 확보 필요 — 예산초과 시 손익 침식 리스크",
+        note:"* D등급 7개사(경고 대상) / E등급 2개사(등록 제외 심사 대상) — 정기평가 백데이터 기반 지정 관리",
       },
     ],
 
@@ -2182,7 +2185,15 @@ const UNYEONG = {
   function cardHtml(card, cid){
     const accent = card.accent||'amber';
     let inner = `<div class="panel-head"><div><div class="p-title">${card.title}</div><div class="p-sub">${card.sub||''}</div></div>`;
-    inner += `${card.badge?badgeHtml(card.badge):''}</div>`;
+    if(card.hasOutTab) {
+      inner += `<div style="display:flex;gap:6px;align-items:center;">
+        <button class="scn-btn active" style="padding:4px 12px;font-size:13px;cursor:pointer;">자재 (디폴트)</button>
+        <button class="scn-btn" style="padding:4px 12px;font-size:13px;opacity:0.4;cursor:not-allowed;" title="외주 데이터 준비 중">외주</button>
+        ${card.badge?badgeHtml(card.badge):''}
+      </div></div>`;
+    } else {
+      inner += `${card.badge?badgeHtml(card.badge):''}</div>`;
+    }
 
     if(card.boxes){
       const c3Cls = card.boxes.length===3 ? 'c3' : '';
