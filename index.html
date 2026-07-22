@@ -1755,12 +1755,48 @@ const IIK = {
 
     /* ── 2.1 자재 단가 변동률 ── */
     "2-1": [
-      { type:"custom_21", title:"자재 단가 변동률 및 인덱스 추이" }
+      { type:"metrics_c21", accent:"miss", title:"자재 단가 변동률 및 인덱스 추이", sub:"주요 자재 2020년 대비 단가 변동 및 품목별 인덱스(2020=100.0) 추적", badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"2020년 대비 누적 상승률", val:"+62.5%", cls:"danger"},
+          {lbl:"전년 대비 상승률", val:"+7.2%", cls:"warn"},
+          {lbl:"손익 영향액 추정", val:"176억원", cls:"warn"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[원가 리스크] 8대 자재 종합 가격인덱스 2020년(100.0) 대비 162.5 (+62.5% 누적 상승)</strong> — 케이블(+215.1%), 시멘트(+76.3%), 레미탈(+53.6%) 인상에 따른 원가 부담 가중"},
+        note:"* 자재별 각자 2020년 계약단가를 100.0 인덱스로 환산하여 물가 인상분 추적 관리 (Main: 외주구매)",
+      },
+      { type:"list", accent:"miss", title:"현장별 단가계약 변동시점 손익 영향 현황", sub:"자재별 단가계약 인상 시점(2020~2026년 백데이터) 및 진행 현장 손실 영향 추정", badge:{lv:"danger",txt:"변동시점 추적"},
+        listTitle:"단가계약 인상 시점 및 진행 현장 손익 영향 백데이터",
+        items:[
+          {st:"fail", name:"레미탈 (중부권) — 2022년 7월 단가계약 인상 (포당 2,900원 → 3,650원, +25.9%)", amt:"-14.2억 손실", cls:"red"},
+          {st:"fail", name:"케이블 (CV 35SQ) — 2024년 1월 & 2026년 7월 2차 인상 (m당 6,318원 → 8,341원, +32.0%)", amt:"-32.5억 손실", cls:"red"},
+          {st:"fail", name:"시멘트 (BULK) — 2021년 7월 & 2023년 7월 연속 인상 (TON당 66,500원 → 99,000원, +48.9%)", amt:"-28.0억 손실", cls:"red"},
+          {st:"warn", name:"석고보드 (일반 9.5T) — 2022년 7월 단가계약 인상 (매당 2,350원 → 3,120원, +32.8%)", amt:"-8.6억 손실", cls:"amber"},
+          {st:"warn", name:"강관류 (흑관 SPP D15) — 2021년 7월 & 2026년 7월 인상 (m당 1,290원 → 1,390원, +7.8%)", amt:"-6.4억 손실", cls:"amber"},
+        ],
+        note:"* 진행 현장별 자재 투입량 및 인상 시점 조합 손익 영향액 추정 (Main: 외주구매)",
+      },
     ],
 
-/* ── 2.2 예산 대비 낙찰률 ── */
+    /* ── 2.2 예산 대비 낙찰률 ── */
     "2-2": [
-      { type:"custom_22", title:"5개년 자재계약 낙찰률 비교" }
+      { type:"metrics", accent:"ok", title:"5개년 자재계약 낙찰률 비교", sub:"2021년 ~ 2025년 자재 및 하도급 외주계약 연도별 낙찰률 추이", badge:{lv:"ok",txt:"5개년 비교"},
+        boxes:[
+          {lbl:"누적 가중낙찰률", val:"91.6%", cls:"ok"},
+          {lbl:"누적 절감액 (절초감)", val:"605.4억원", cls:"ok"},
+          {lbl:"2025년 낙찰률", val:"84.9%", cls:"ok"},
+          {lbl:"낙찰률 개선폭", val:"-12.7%p", cls:"ok"},
+        ],
+        chart:{kind:"line", maxY:105, labels:["2021년","2022년","2023년","2024년","2025년"],
+          series:[
+            {data:[90,90,90,90,90], color:"#7e93ab", dash:"5,5"},
+            {data:[97.6,99.1,90.8,89.8,84.9], color:"#22c55e", dots:true, width:3, vlab:true, lab:["97.6%","99.1%","90.8%","89.8%","84.9%"]},
+          ],
+          legend:[{c:"#22c55e",t:"━━ 연도별 예산 대비 낙찰률 (%)"},{c:"#7e93ab",t:"╌╌ 관리 목표선 (90.0%)"}]},
+        note:"* 2021~2025년 누적 외주계약 백데이터 집계 분석 (Main: 외주구매)",
+      },
+      { type:"bd_table", accent:"ok", title:"품목별 자재계약 절감액 현황", sub:"공급가액 1억원 이상 주요 자재계약 절감액 및 절감율 나열 (BD 백데이터 연동)", badge:{lv:"ok",txt:"1억이상 계약"},
+        note:"* 공급가액 1.0억원 이상 자재 및 하도급 외주계약 대상 (BD 시트 백데이터 기준)",
+      },
     ],
 
     /* ── 3.1 이익의 질 ── */
@@ -2533,8 +2569,8 @@ const UNYEONG = {
     content.innerHTML = `<div class="panel-grid">`+cards.map((c,i)=>cardHtml(c,cids[i])).join('')+`</div>`;
     // 차트 렌더
     cards.forEach((c,i)=>{
-      if(c.type==='custom_21'){ renderCustom21($(mountId+'-content')); return; }
-      if(c.type==='custom_22'){ renderCustom22($(mountId+'-content')); return; }
+      if(c.type==='metrics_c21'){ drawChart21(cids[i]); return; }
+      if(c.type==='bd_table'){ renderBDList(); return; }
       if(c.type==='sim'){ renderSim(c, cids[i]); return; }
       if(!c.chart) return;
       const el=$(cids[i]); if(!el) return;
