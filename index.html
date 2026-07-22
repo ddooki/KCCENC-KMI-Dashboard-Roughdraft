@@ -47,6 +47,13 @@
   .screen.on { display:block; animation:fade .25s; }
   .panel-grid { display:flex; flex-wrap:wrap; gap:22px; align-items:stretch; }
   .panel { flex:1 1 46%; min-width:430px; background:var(--card); border-radius:16px; padding:24px; border:1px solid var(--border); box-shadow:0 10px 25px rgba(0,0,0,0.3); display:flex; flex-direction:column; }
+.card { flex:1 1 46%; min-width:430px; background:var(--card); border-radius:16px; padding:24px; border:1px solid var(--border); box-shadow:0 10px 25px rgba(0,0,0,0.3); display:flex; flex-direction:column; position:relative; overflow:hidden; }
+  .card.miss { border:1.5px solid rgba(255,105,105,0.7); box-shadow:0 6px 22px rgba(255,105,105,0.18); }
+  .card.miss::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:var(--miss); }
+  .card.amber { border:1.5px solid rgba(255,173,66,0.65); box-shadow:0 6px 22px rgba(255,173,66,0.18); }
+  .card.amber::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:var(--amber); }
+  .card.ok { border:1.5px solid rgba(140,178,105,0.65); box-shadow:0 6px 22px rgba(140,178,105,0.18); }
+  .card.ok::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:var(--actual); }
   .panel-head { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:16px; }
   .p-title { font-size:21px; font-weight:800; }
   .p-sub { color:var(--sub); font-size:13px; margin-top:5px; }
