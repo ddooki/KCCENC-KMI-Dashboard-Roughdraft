@@ -1772,6 +1772,9 @@ const IIK = {
           {st:"fail", name:"시멘트 (BULK) — 2021년 7월 & 2023년 7월 연속 인상 (TON당 66,500원 → 99,000원, +48.9%)", amt:"-28.0억 손실", cls:"red"},
           {st:"warn", name:"석고보드 (일반 9.5T) — 2022년 7월 단가계약 인상 (매당 2,350원 → 3,120원, +32.8%)", amt:"-8.6억 손실", cls:"amber"},
           {st:"warn", name:"강관류 (흑관 SPP D15) — 2021년 7월 & 2026년 7월 인상 (m당 1,290원 → 1,390원, +7.8%)", amt:"-6.4억 손실", cls:"amber"},
+          {st:"warn", name:"강제전선관 (기본규격) — 2022년 1월 & 2025년 7월 인상 (m당 4,500원 → 5,445원, +21.0%)", amt:"-4.8억 손실", cls:"amber"},
+          {st:"fail", name:"철근 (SD400 D10) — 2021년 5월 & 2024년 3월 분기단가 변동 (TON당 67만 → 89만원, +32.8%)", amt:"-52.0억 손실", cls:"red"},
+          {st:"warn", name:"아스콘 (밀립 13mm) — 2023년 4월 단가 인상 (TON당 62,000원 → 74,500원, +20.1%)", amt:"-29.5억 손실", cls:"amber"},
         ],
         note:"* 진행 현장별 자재 투입량 및 인상 시점 조합 손익 영향액 추정 (Main: 외주구매)",
       },
@@ -2153,6 +2156,66 @@ const UNYEONG = {
   }
   function cardHtml(card, cid){
     const accent = card.accent||'amber';
+    let inner = `<div class="panel-head"><div><div class="p-title">${card.title}</div><div class="p-sub">${card.sub||''}</div></div>`;
+    if(card.type === 'bd_table') {
+      inner += `<div style="display:flex;gap:6px;align-items:center;">
+        <button class="scn-btn ${bdSortMode==='sav'?'active':''}" id="bd-btn-sav" onclick="setBDSort('sav')">절감액 기준 (디폴트)</button>
+        <button class="scn-btn ${bdSortMode==='rate'?'active':''}" id="bd-btn-rate" onclick="setBDSort('rate')">절감율 기준</button>
+      </div></div>`;
+    } else {
+      inner += `${card.badge?badgeHtml(card.badge):''}</div>`;
+    }
+
+    if(card.boxes){
+      const c3Cls = card.boxes.length===3 ? 'c3' : '';
+      inner += `<div class="num-dashboard ${c3Cls}">`+card.boxes.map(b=>`<div class="num-box ${b.cls||''}"><div class="num-lbl">${b.lbl}</div><div class="num-val">${b.val}</div></div>`).join('')+`</div>`;
+    }
+
+    if(card.msg){ inner += `<div class="warning-msg ${card.msg.lv==='ok'?'safe':card.msg.lv}">${card.msg.txt}</div>`; }
+
+    if(card.listTitle){
+      inner += `<div class="tracker-box"><div class="tracker-title">${card.listTitle}</div><div class="task-list">${card.items.map(taskItem).join('')}</div></div>`;
+    }
+
+    if(card.type === 'metrics_c21') {
+      inner += `<div class="chart-container" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;background:var(--deep);border-radius:8px;border:1px solid var(--border);">
+          <span style="font-size:12.5px;font-weight:700;color:var(--sub);margin-right:4px;">품목 선택:</span>
+          ${MAT_DATA.items.map(m => `
+            <button class="scn-btn ${activeMats[m.id]?'active':''}" id="mat-btn-${m.id}" onclick="toggleMat('${m.id}')" style="padding:4px 10px;font-size:12px;">
+              ${m.shape} ${m.name}
+            </button>
+          `).join('')}
+        </div>
+        <div class="svg-canvas" id="${cid}" style="min-height:260px;"></div>
+      </div>`;
+    }
+
+    if(card.type === 'bd_table') {
+      inner += `<div class="tracker-box">
+        <div class="tracker-title">주요 자재/하도급 입찰계약 절감 현황 (공급가 1.0억원 이상)</div>
+        <div id="bd-list-box">${getBDListHtml()}</div>
+      </div>`;
+    }
+
+    if(card.chart){
+      const lg = (card.chart.legend||[]).map(l=>`<span style="color:${l.c};">${l.t}</span>`).join('');
+      inner += `<div class="chart-container"><div class="custom-legend">${lg}</div><div class="svg-canvas" id="${cid}"></div></div>`;
+    }
+
+    if(card.note){ inner += `<div class="note">${card.note}</div>`; }
+
+    return `<div class="card ${accent} flex-col">${inner}</div>`;
+  }
+
+  function badgeHtml(b){ return `<div class="badge ${BADGE[b.lv][0]}">${BADGE[b.lv][1]} ${b.txt}</div>`; }
+  function taskItem(it){
+    const icon = it.st==='done'?'<span class="icon-done">✔</span>':it.st==='warn'?'<span class="icon-warn">●</span>':'<span class="icon-fail">⚠</span>';
+    const nm = it.st==='fail'?`<strong style="color:#ffb3ad">${it.name}</strong>`:it.name;
+    return `<div class="task-item ${it.st}"><div class="left">${icon} ${nm}</div>${it.amt?`<span class="amt ${it.cls||''}">${it.amt}</span>`:''}</div>`;
+  }
+  function cardHtml(card, cid){
+    const accent = card.accent||'amber';
     let inner = `<div class="panel-head"><div><div class="p-title">${card.title}</div><div class="p-sub">${card.sub||''}</div></div>${card.badge?badgeHtml(card.badge):''}</div>`;
     if(card.boxes){
       inner += `<div class="num-dashboard">`+card.boxes.map(b=>`<div class="num-box ${b.cls||''}"><div class="num-lbl">${b.lbl}</div><div class="num-val">${b.val}</div></div>`).join('')+`</div>`;
@@ -2350,11 +2413,13 @@ const UNYEONG = {
     drawChart21();
   }
 
-  function drawChart21() {
-    const box = $('c21-svg-box');
+  function drawChart21(cid) {
+    const targetId = cid || 'c21-svg-box';
+    let box = $(targetId);
+    if(!box) box = $('c21-svg-box');
     if(!box) return;
     const w = box.clientWidth || 580;
-    const h = 215;
+    const h = 260;
     const padL = 35, padR = 25, padT = 20, padB = 25;
     const chartW = w - padL - padR;
     const chartH = h - padT - padB;
@@ -2416,9 +2481,6 @@ const UNYEONG = {
     box.innerHTML = svg;
   }
 
-  /* ═══════════════════════════════════════════════════════════════
-     2.2 예산 대비 낙찰률 커스텀 인터랙티브 렌더러 (기존 카드 스타일 복구)
-     ═══════════════════════════════════════════════════════════════ */
   const CONTRACT_BD = [
     { cat:"공조기류", site:"평택 사무3동 신축", budget:415.3, bid:363.7, sav:51.6, rate:12.4, vendor:"(주)신성이엔지 외" },
     { cat:"거푸집 공사", site:"아산 벨코어 스위첸", budget:259.7, bid:226.9, sav:32.8, rate:12.6, vendor:"(주)삼우폼텍 외" },
