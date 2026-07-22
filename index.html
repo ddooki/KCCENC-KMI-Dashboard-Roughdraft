@@ -1312,18 +1312,18 @@ const GONGJEONG = {
 
     /* ── 3.1 하도급 수행 리스크 발생률 ── */
     "3-1": [
-      { type:"metrics", accent:"miss", title:"하도급 수행 리스크 발생률", sub:"협력사 공정차질·품질 리스크 발생 비율 | 산출근거: (발생건수 ÷ 전체 수행건수) × 100", badge:{lv:"danger",txt:"경보"},
+      { type:"metrics", accent:"miss", title:"하도급 수행 리스크 발생률", sub:"협력사 공정차질·품질·재무 리스크 발생 비율 | 엑셀 백데이터(02.03.02) 연동", badge:{lv:"danger",txt:"경보"},
         boxes:[
-          {lbl:"리스크 발생률", val:"11.5%", cls:"danger"},
-          {lbl:"위험 협력사", val:"6개사", cls:"danger"},
-          {lbl:"전체 하도급 수행", val:"52개사"},
+          {lbl:"리스크 발생률", val:"16.9%", cls:"danger"},
+          {lbl:"위험 협력사", val:"120개사", cls:"danger"},
+          {lbl:"전체 유효 협력사", val:"711개사"},
           {lbl:"기준선", val:"8.0%"},
         ],
-        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 하도급 수행 리스크 발생률 11.5%로 기준선(8.0%) 초과 — 위험 협력사 6개사 공정 차질·품질·타절 리스크 집중 (Main: 외주구매 | Support: 인프라·건축)"},
-        chart:{kind:"line", maxY:15, labels:["1월","2월","3월","4월","5월","6월"],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 711개 유효 협력사 중 재무위험·공정차질 리스크 120개사(16.9%) 감지 — 기준선(8.0%) 초과. (Main: 외주구매 | Support: 인프라·건축)"},
+        chart:{kind:"line", maxY:20, labels:["1월","2월","3월","4월","5월","6월"],
           series:[
             {data:[8,8,8,8,8,8], color:"#7e93ab", dash:"5,5"},
-            {data:[8.2,9.0,9.6,10.4,10.9,11.5], color:"#ff6969", dots:true, width:3, vlab:true, lab:["8.2%","9.0%","9.6%","10.4%","10.9%","11.5%"]},
+            {data:[11.2,12.5,13.8,15.1,16.0,16.9], color:"#ff6969", dots:true, width:3, vlab:true, lab:["11.2%","12.5%","13.8%","15.1%","16.0%","16.9%"]},
           ],
           legend:[{c:"#7e93ab",t:"╌╌ 기준선(8%)"},{c:"#ff6969",t:"━━ 리스크 발생률"}]},
       },
@@ -1340,33 +1340,33 @@ const GONGJEONG = {
       },
     ],
 
-    /* ── 3.2 협력업체 재무위험 비율 ── */
+/* ── 3.2 협력업체 재무위험 비율 ── */
     "3-2": [
-      { type:"metrics", accent:"amber", title:"협력업체 재무위험 비율", sub:"업체 부실로 인한 공정차질 예방 | 산출근거: (재무위험 업체 수 ÷ 전체 유효 협력업체 수) × 100", badge:{lv:"warn",txt:"주의"},
+      { type:"metrics", accent:"miss", title:"협력업체 재무위험 비율", sub:"711개 등록 협력사 신용·현금흐름 종합 평가 | 엑셀 백데이터(02.03.02) 기준", badge:{lv:"danger",txt:"경보"},
         boxes:[
-          {lbl:"재무위험 비율", val:"11.5%", cls:"warn"},
-          {lbl:"위험업체 수", val:"6개사", cls:"warn"},
-          {lbl:"전체 유효 협력사", val:"52개사"},
+          {lbl:"재무위험 비율", val:"16.9%", cls:"danger"},
+          {lbl:"재무위험 업체", val:"120개사", cls:"danger"},
+          {lbl:"전체 유효 협력사", val:"711개사"},
           {lbl:"기준선", val:"5.0%"},
         ],
-        msg:{lv:"warn", txt:"<strong>[주의]</strong> 재무위험 비율 11.5%로 기준선(5.0%) 초과 — 신용등급·현금흐름 변동 확인 → 위험업체 발주 제한 및 대체업체 검토 (Main: 외주구매 | Support: 인프라·건축)"},
-        chart:{kind:"line", maxY:15, labels:["1월","2월","3월","4월","5월","6월"],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 재무위험 비율 16.9%(120개사)로 기준선(5.0%) 초과 — 신용 B-이하 또는 현금 D/E등급 위험업체 발주 제한 및 대체업체 사전 확보 (Main: 외주구매 | Support: 인프라·건축)"},
+        chart:{kind:"line", maxY:20, labels:["1월","2월","3월","4월","5월","6월"],
           series:[
             {data:[5,5,5,5,5,5], color:"#7e93ab", dash:"5,5"},
-            {data:[5.2,6.1,7.4,8.8,9.9,11.5], color:"#ffad42", dots:true, width:3, vlab:true, lab:["5.2%","6.1%","7.4%","8.8%","9.9%","11.5%"]},
+            {data:[10.4,11.8,13.2,14.5,15.8,16.9], color:"#ff6969", dots:true, width:3, vlab:true, lab:["10.4%","11.8%","13.2%","14.5%","15.8%","16.9%"]},
           ],
-          legend:[{c:"#7e93ab",t:"╌╌ 기준선(5.0%)"},{c:"#ffad42",t:"━━ 재무위험 비율"}]},
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(5.0%)"},{c:"#ff6969",t:"━━ 재무위험 비율"}]},
       },
-      { type:"list", accent:"miss", title:"협력사 신용등급·현금흐름 변동 모니터링", sub:"신용평가 하락·부도위험 및 부실 협력사 모니터링", badge:{lv:"danger",txt:"위험 3개사"},
-        listTitle:"신용등급 하락 및 재무위험 협력사 현황",
+      { type:"list", accent:"miss", title:"협력사 신용등급·현금흐름 변동 모니터링 (백데이터 실측)", sub:"신용 B-이하 / 현금흐름 D·E등급 부실위험 협력사 120개사 모니터링", badge:{lv:"danger",txt:"위험 120개사"},
+        listTitle:"주요 재무위험 협력사 현황 (엑셀 02.03.02 추출 사례)",
         items:[
-          {st:"fail", name:"◇◇건설 (B → CCC, 어음할인율 급등 · 부도위험)", amt:"부도위험", cls:"red"},
-          {st:"fail", name:"태원석재(주) (신용 BB- / 현금흐름 C+ · 채권가압류)", amt:"타절대상", cls:"red"},
-          {st:"warn", name:"☆☆산업 (BB → B, 공사대금 지급요청 증가)", amt:"주의", cls:"amber"},
-          {st:"warn", name:"○○기공 (BBB → BB, 타현장 지연)", amt:"주의", cls:"amber"},
-          {st:"done", name:"△△이엔씨 (A 유지 · 정상)", amt:"정상", cls:"green"},
+          {st:"fail", name:"대림통상 주식회사 (신용 B- / 현금흐름 D · 매출 1,022억)", amt:"위험(D등급)", cls:"red"},
+          {st:"fail", name:"현대에버다임 (신용 BB / 현금흐름 D · 매출 2,725억)", amt:"위험(D등급)", cls:"red"},
+          {st:"fail", name:"한신비텍 (신용 B+ / 현금흐름 D · 매출 470억)", amt:"위험(D등급)", cls:"red"},
+          {st:"fail", name:"주식회사 해냄씨앤디 (신용 CCC / 현금흐름 C- · 매출 6억)", amt:"고위험(CCC)", cls:"red"},
+          {st:"warn", name:"주식회사 신강스틸 (신용 B- / 현금흐름 D · 매출 54억)", amt:"위험(B-/D)", cls:"amber"},
         ],
-        note:"* 신용등급·현금흐름등급 변동 실시간 추적 → 위험업체 발주 제한 및 대체업체 사전 확보",
+        note:"* 711개 협력사 중 D등급 65개, E등급 20개, CCC이하 19개사 집계 — 실시간 등급 변동 추적 및 발주 제한",
       },
     ],
 
