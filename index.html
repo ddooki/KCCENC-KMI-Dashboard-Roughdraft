@@ -2556,6 +2556,14 @@ const UNYEONG = {
     if(box) box.innerHTML = getBDListHtml();
   }
 
-  </script>
+  /* ══════════ 초기화 ══════════ */
+  buildMainTabs();
+  renderGeneric('mount-2', GONGJEONG);
+  renderGeneric('mount-3', JAGEUM);
+  renderGeneric('mount-4', IIK);
+  renderGeneric('mount-5', UNYEONG);
+  selectMain(1);   // 첫 화면
+
+</script>
 </body>
 </html>
