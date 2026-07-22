@@ -1134,19 +1134,18 @@ const DATA = {
 
   // DATA 로드 보장 후 렌더 (외부 data.js 로딩 타이밍 방어)
   function initDashboard(){
-{{ ... }}
-    if(typeof DATA==='undefined'){ setTimeout(initDashboard, 50); return; }
+    if(typeof DATA===&#x27;undefined&#x27;){ setTimeout(initDashboard, 50); return; }
     render();
     selectCat(1);
   }
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', initDashboard);
+  if(document.readyState===&#x27;loading&#x27;){
+    document.addEventListener(&#x27;DOMContentLoaded&#x27;, initDashboard);
   } else {
     initDashboard();
   }
-</script>
-</body>
-</html>
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
 " title="수주"></iframe></div>
   <!-- 공정: 범용 렌더 -->
   <div class="dv" id="stage-2"><div id="mount-2"></div></div>
