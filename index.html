@@ -2104,12 +2104,13 @@ const UNYEONG = {
     return w;
   }
   const MAIN = [
-    {no:"01", name:"수주", dot:"danger"},   /* 수주는 iframe이라 수동 지정 */
+    {no:"01", name:"수주", dot:"danger"},
     {no:"02", name:"공정", dot:worstDot(typeof GONGJEONG!=='undefined'?GONGJEONG:null)},
     {no:"03", name:"자금", dot:worstDot(typeof JAGEUM!=='undefined'?JAGEUM:null)},
     {no:"04", name:"이익", dot:worstDot(typeof IIK!=='undefined'?IIK:null)},
     {no:"05", name:"운영", dot:worstDot(typeof UNYEONG!=='undefined'?UNYEONG:null)},
   ];
+
   function buildMainTabs(){
     $('maintabs').innerHTML = MAIN.map((m,i)=>
       `<div class="maintab${i===0?' active':''}" id="mt-${i+1}" onclick="selectMain(${i+1})">
@@ -2117,49 +2118,65 @@ const UNYEONG = {
         <div class="mt-no">${m.no}</div><div class="mt-name">${m.name}</div>
       </div>`).join('');
   }
+
   function selectMain(n){
     document.querySelectorAll('.maintab').forEach((el,i)=>el.classList.toggle('active',i===n-1));
     document.querySelectorAll('.dv').forEach(el=>el.classList.remove('on'));
-    $('stage-'+n).classList.add('on');
+    const target = $('stage-'+n);
+    if(target) target.classList.add('on');
     if(n===1) setTimeout(fitIframe, 50);
   }
 
-  /* ══════════ 차트 엔진 (수주와 동일) ══════════ */
+  /* ══════════ 차트 엔진 ══════════ */
   function lineChart(el, series, maxY, labels) {
-    const w=600,h=215,padX=30,padY=22,dw=w-padX*2,dh=h-padY*2,n=labels.length;
+    const w=600, h=215, padX=30, padY=22, dw=w-padX*2, dh=h-padY*2, n=labels.length;
     const xs=i=>padX+i*(dw/(n-1)), ys=v=>padY+dh-(v/maxY)*dh;
-    let grid='',lbl='';
-    labels.forEach((m,i)=>{ grid+=`<line x1="${xs(i)}" y1="${padY}" x2="${xs(i)}" y2="${padY+dh}" stroke="#16322f" stroke-width="1"/>`;
-      lbl+=`<text x="${xs(i)}" y="${h-3}" fill="#8fa4bd" font-size="10.5" text-anchor="middle">${m}</text>`; });
-    let paths='',dots='',vt='';
-    series.forEach(s=>{ let d='';
-      s.data.forEach((v,i)=>{ if(v===null||v===undefined) return;
+    let grid='', lbl='';
+    labels.forEach((m,i)=>{
+      grid+=`<line x1="${xs(i)}" y1="${padY}" x2="${xs(i)}" y2="${padY+dh}" stroke="#16322f" stroke-width="1"/>`;
+      lbl+=`<text x="${xs(i)}" y="${h-3}" fill="#8fa4bd" font-size="10.5" text-anchor="middle">${m}</text>`;
+    });
+    let paths='', dots='', vt='';
+    series.forEach(s=>{
+      let d='', seen=0;
+      s.data.forEach((v,i)=>{
+        if(v===null||v===undefined) return;
         d+=(d?' L':'M')+` ${xs(i)} ${ys(v)}`;
         if(s.dots) dots+=`<circle cx="${xs(i)}" cy="${ys(v)}" r="3.5" fill="${s.color}" stroke="#0d1f1d" stroke-width="2"/>`;
-        if(s.vlab){ const txt=s.lab?s.lab[i]:v; vt+=`<text x="${xs(i)}" y="${s.below?ys(v)+17:ys(v)-9}" fill="${s.color}" font-size="9.5" font-weight="700" text-anchor="middle">${txt}</text>`; }
+        if(s.vlab){
+          seen++;
+          if(!(s.vskip && seen<=s.vskip)){
+            const txt = s.lab ? s.lab[i] : v;
+            vt+=`<text x="${xs(i)}" y="${s.below?ys(v)+17:ys(v)-9}" fill="${s.color}" font-size="9.5" font-weight="700" text-anchor="middle">${txt}</text>`;
+          }
+        }
       });
       paths+=`<path d="${d}" stroke="${s.color}" stroke-width="${s.width||2.5}" fill="none" stroke-dasharray="${s.dash||''}" stroke-linecap="round" stroke-linejoin="round"/>`;
     });
     el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${grid}${paths}${dots}${vt}${lbl}</svg>`;
   }
+
   function barChart(el, data, labels, color) {
-    const maxY=Math.max(...data)*1.28,w=600,h=215,padX=30,padY=18,dw=w-padX*2,dh=h-padY*2,bw=dw/data.length*0.5;
-    let bars='',lbl='';
-    data.forEach((v,i)=>{ const x=padX+i*(dw/data.length)+(dw/data.length-bw)/2,bh=(v/maxY)*dh;
+    const maxY=Math.max(...data)*1.25, w=600, h=215, padX=30, padY=18, dw=w-padX*2, dh=h-padY*2, bw=dw/data.length*0.55;
+    let bars='', lbl='';
+    data.forEach((v,i)=>{
+      const x=padX+i*(dw/data.length)+(dw/data.length-bw)/2, bh=(v/maxY)*dh;
       bars+=`<rect x="${x}" y="${padY+dh-bh}" width="${bw}" height="${bh}" rx="4" fill="${color}" opacity="0.85"/>`;
-      bars+=`<text x="${x+bw/2}" y="${padY+dh-bh-6}" fill="#eef5ff" font-size="11" font-weight="700" text-anchor="middle">${v.toLocaleString()}</text>`;
-      lbl+=`<text x="${x+bw/2}" y="${h-3}" fill="#8fa4bd" font-size="10.5" text-anchor="middle">${labels[i]}</text>`;
+      bars+=`<text x="${x+bw/2}" y="${padY+dh-bh-6}" fill="${color}" font-size="10" font-weight="700" text-anchor="middle">${v}</text>`;
+      lbl+=`<text x="${x+bw/2}" y="${h-2}" fill="#8fa4bd" font-size="10" text-anchor="middle">${labels[i]}</text>`;
     });
     el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${bars}${lbl}</svg>`;
   }
 
-  /* ══════════ 범용 대시보드 렌더러 ══════════ */
+  /* ══════════ 카드 렌더링 헬퍼 ══════════ */
   function badgeHtml(b){ return `<div class="badge ${BADGE[b.lv][0]}">${BADGE[b.lv][1]} ${b.txt}</div>`; }
+  
   function taskItem(it){
     const icon = it.st==='done'?'<span class="icon-done">✔</span>':it.st==='warn'?'<span class="icon-warn">●</span>':'<span class="icon-fail">⚠</span>';
     const nm = it.st==='fail'?`<strong style="color:#ffb3ad">${it.name}</strong>`:it.name;
     return `<div class="task-item ${it.st}"><div class="left">${icon} ${nm}</div>${it.amt?`<span class="amt ${it.cls||''}">${it.amt}</span>`:''}</div>`;
   }
+
   function cardHtml(card, cid){
     const accent = card.accent||'amber';
     let inner = `<div class="panel-head"><div><div class="p-title">${card.title}</div><div class="p-sub">${card.sub||''}</div></div>`;
@@ -2219,106 +2236,14 @@ const UNYEONG = {
     return `<div class="card ${accent} flex-col">${inner}</div>`;
   }
 
-  function badgeHtml(b){ return `<div class="badge ${BADGE[b.lv][0]}">${BADGE[b.lv][1]} ${b.txt}</div>`; }
-  function taskItem(it){
-    const icon = it.st==='done'?'<span class="icon-done">✔</span>':it.st==='warn'?'<span class="icon-warn">●</span>':'<span class="icon-fail">⚠</span>';
-    const nm = it.st==='fail'?`<strong style="color:#ffb3ad">${it.name}</strong>`:it.name;
-    return `<div class="task-item ${it.st}"><div class="left">${icon} ${nm}</div>${it.amt?`<span class="amt ${it.cls||''}">${it.amt}</span>`:''}</div>`;
-  }
-  function cardHtml(card, cid){
-    const accent = card.accent||'amber';
-    let inner = `<div class="panel-head"><div><div class="p-title">${card.title}</div><div class="p-sub">${card.sub||''}</div></div>`;
-    if(card.type === 'bd_table') {
-      inner += `<div style="display:flex;gap:6px;align-items:center;">
-        <button class="scn-btn ${bdSortMode==='sav'?'active':''}" id="bd-btn-sav" onclick="setBDSort('sav')">절감액 기준 (디폴트)</button>
-        <button class="scn-btn ${bdSortMode==='rate'?'active':''}" id="bd-btn-rate" onclick="setBDSort('rate')">절감율 기준</button>
-      </div></div>`;
-    } else {
-      inner += `${card.badge?badgeHtml(card.badge):''}</div>`;
-    }
-
-    if(card.boxes){
-      const c3Cls = card.boxes.length===3 ? 'c3' : '';
-      inner += `<div class="num-dashboard ${c3Cls}">`+card.boxes.map(b=>`<div class="num-box ${b.cls||''}"><div class="num-lbl">${b.lbl}</div><div class="num-val">${b.val}</div></div>`).join('')+`</div>`;
-    }
-
-    if(card.msg){ inner += `<div class="warning-msg ${card.msg.lv==='ok'?'safe':card.msg.lv}">${card.msg.txt}</div>`; }
-
-    if(card.listTitle){
-      inner += `<div class="tracker-box"><div class="tracker-title">${card.listTitle}</div><div class="task-list">${card.items.map(taskItem).join('')}</div></div>`;
-    }
-
-    if(card.type === 'metrics_c21') {
-      inner += `<div class="chart-container" style="display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;background:var(--deep);border-radius:8px;border:1px solid var(--border);">
-          <span style="font-size:12.5px;font-weight:700;color:var(--sub);margin-right:4px;">품목 선택:</span>
-          ${MAT_DATA.items.map(m => `
-            <button class="scn-btn ${activeMats[m.id]?'active':''}" id="mat-btn-${m.id}" onclick="toggleMat('${m.id}')" style="padding:4px 10px;font-size:12px;">
-              ${m.shape} ${m.name}
-            </button>
-          `).join('')}
-        </div>
-        <div class="svg-canvas" id="${cid}" style="min-height:260px;"></div>
-      </div>`;
-    }
-
-    if(card.type === 'bd_table') {
-      inner += `<div class="tracker-box">
-        <div class="tracker-title">주요 자재/하도급 입찰계약 절감 현황 (공급가 1.0억원 이상)</div>
-        <div id="bd-list-box">${getBDListHtml()}</div>
-      </div>`;
-    }
-
-    if(card.chart){
-      const lg = (card.chart.legend||[]).map(l=>`<span style="color:${l.c};">${l.t}</span>`).join('');
-      inner += `<div class="chart-container"><div class="custom-legend">${lg}</div><div class="svg-canvas" id="${cid}"></div></div>`;
-    }
-
-    if(card.note){ inner += `<div class="note">${card.note}</div>`; }
-
-    return `<div class="card ${accent} flex-col">${inner}</div>`;
-  }
-
-  function badgeHtml(b){ return `<div class="badge ${BADGE[b.lv][0]}">${BADGE[b.lv][1]} ${b.txt}</div>`; }
-  function taskItem(it){
-    const icon = it.st==='done'?'<span class="icon-done">✔</span>':it.st==='warn'?'<span class="icon-warn">●</span>':'<span class="icon-fail">⚠</span>';
-    const nm = it.st==='fail'?`<strong style="color:#ffb3ad">${it.name}</strong>`:it.name;
-    return `<div class="task-item ${it.st}"><div class="left">${icon} ${nm}</div>${it.amt?`<span class="amt ${it.cls||''}">${it.amt}</span>`:''}</div>`;
-  }
-  function cardHtml(card, cid){
-    const accent = card.accent||'amber';
-    let inner = `<div class="panel-head"><div><div class="p-title">${card.title}</div><div class="p-sub">${card.sub||''}</div></div>${card.badge?badgeHtml(card.badge):''}</div>`;
-    if(card.boxes){
-      inner += `<div class="num-dashboard">`+card.boxes.map(b=>`<div class="num-box ${b.cls||''}"><div class="num-lbl">${b.lbl}</div><div class="num-val">${b.val}</div></div>`).join('')+`</div>`;
-    }
-    if(card.msg){ inner += `<div class="warning-msg ${card.msg.lv==='ok'?'safe':card.msg.lv}">${card.msg.txt}</div>`; }
-    if(card.listTitle){ inner += `<div class="tracker-box"><div class="tracker-title">${card.listTitle}</div><div class="task-list">${card.items.map(taskItem).join('')}</div></div>`; }
-    if(card.chart){
-      const lg = (card.chart.legend||[]).map(l=>`<span style="color:${l.c};">${l.t}</span>`).join('');
-      inner += `<div class="chart-container"><div class="custom-legend">${lg}</div><div class="svg-canvas" id="${cid}"></div></div>`;
-    }
-    if(card.type==='sim'){
-      // 할인율 버튼 + 요약 + 현장별 표
-      inner += `<div class="scn-row" id="${cid}-btns"><span class="scn-lbl">할인율 시나리오 (전 현장 일괄 적용)</span></div>`;
-      inner += `<div class="num-dashboard c3" style="margin-bottom:16px;">
-        <div class="num-box"><div class="num-lbl">총 미분양 규모</div><div class="num-val" id="${cid}-unsold"></div></div>
-        <div class="num-box danger"><div class="num-lbl">추정 할인손실 계</div><div class="num-val" id="${cid}-loss"></div></div>
-        <div class="num-box warn"><div class="num-lbl">적용 할인율</div><div class="num-val" id="${cid}-rate"></div></div>
-      </div>`;
-      inner += `<div class="warning-msg danger" id="${cid}-msg" style="margin-bottom:16px;"></div>`;
-      inner += `<div class="tracker-box" style="flex-grow:1;"><table class="sim-table" id="${cid}-table"></table></div>`;
-    }
-    if(card.note){ inner += `<div class="note">${card.note}</div>`; }
-    return `<div class="panel" style="border-top:5px solid var(--${accent});">${inner}</div>`;
-  }
+  /* ══════════ 대분류/중분류 렌더 ══════════ */
   function renderGeneric(mountId, D){
     const root = $(mountId);
-    // 서브탭 구조
+    if(!root) return;
     let html = `<div class="sub-head"><div class="sub-h-title">${D.meta.부제}</div><div class="sub-h-title">${D.meta.기준}</div></div>`;
     html += `<div class="sub-tabs" id="${mountId}-subtabs"></div><div class="content" id="${mountId}-content"></div>`;
     root.innerHTML = html;
 
-    // 상단에 대분류 선택(칩) — 공정은 대분류 3개
     const catbar = document.createElement('div');
     catbar.style.cssText='display:flex;gap:12px;padding:18px 36px 0;';
     D.대분류.forEach((c,ci)=>{
@@ -2334,31 +2259,38 @@ const UNYEONG = {
       el.id=`${mountId}-cat-${ci+1}`;
       catbar.appendChild(el);
     });
-    root.insertBefore(catbar, root.children[1] || null); // sub-head 아래
+    root.insertBefore(catbar, root.children[1] || null);
 
     root._data = D;
     selectGCat(mountId, D, 1);
   }
+
   function selectGCat(mountId, D, ci){
     D.대분류.forEach((_,i)=>{
       const el=$(`${mountId}-cat-${i+1}`);
+      if(!el) return;
       const on = (i===ci-1);
       el.dataset.active = on?'1':'';
       el.style.borderColor = on?'var(--amber)':'var(--border)';
       el.style.background = on?'linear-gradient(180deg, rgba(255,173,66,0.10), rgba(255,173,66,0.02))':'var(--card)';
     });
-    const subs = D.중분류[String(ci)];
-    const box = $(`${mountId}-subtabs`); box.innerHTML='';
-    subs.forEach((s,i)=>{
-      const b=document.createElement('div'); b.className='sub-tab'; b.textContent=s.name; b.id=`${mountId}-tab-${s.id}`;
-      b.onclick=()=>selectGScreen(mountId, D, s.id);
-      box.appendChild(b);
-    });
-    selectGScreen(mountId, D, subs[0].id);
+    const subs = D.중분류[String(ci)]||[];
+    const box = $(`${mountId}-subtabs`);
+    if(box){
+      box.innerHTML='';
+      subs.forEach((s,i)=>{
+        const b=document.createElement('div');
+        b.className='sub-tab';
+        b.textContent=s.name;
+        b.id=`${mountId}-tab-${s.id}`;
+        b.onclick=()=>selectGScreen(mountId, D, s.id);
+        box.appendChild(b);
+      });
+    }
+    if(subs.length>0) selectGScreen(mountId, D, subs[0].id);
   }
-  /* ═══════════════════════════════════════════════════════════════
-     2.1 자재 단가 변동률 커스텀 인터랙티브 렌더러 (기존 카드 스타일 복구)
-     ═══════════════════════════════════════════════════════════════ */
+
+  /* ══════════ 2.1 자재 단가 변동률 데이터 & 차트 ══════════ */
   const MAT_DATA = {
     labels: ["20년(기준)","21년","22년","23년","24년","25년","26년(현재)"],
     items: [
@@ -2374,91 +2306,6 @@ const UNYEONG = {
 
   let activeMats = {};
   MAT_DATA.items.forEach(m => { activeMats[m.id] = m.defaultOn; });
-
-  function renderCustom21(container) {
-    container.innerHTML = `
-      <div class="panel-grid">
-        <!-- 좌측: 자재 단가 변동률 및 인덱스 추이 -->
-        <div class="card miss flex-col" style="flex:1;">
-          <div class="panel-head">
-            <div>
-              <div class="p-title">자재 단가 변동률 및 인덱스 추이</div>
-              <div class="p-sub">주요 자재 2020년 대비 단가 변동 및 품목별 인덱스(2020=100.0) 추적</div>
-            </div>
-            <div class="badge warn">인덱스 분석</div>
-          </div>
-
-          <!-- 상단 3개 메트릭스 박스 -->
-          <div class="num-dashboard c3">
-            <div class="num-box danger">
-              <div class="num-lbl" id="m21-lbl1">2020년 대비 누적 상승률</div>
-              <div class="num-val danger" id="m21-val1">+62.5%</div>
-            </div>
-            <div class="num-box warn">
-              <div class="num-lbl" id="m21-lbl2">전년 대비 상승률</div>
-              <div class="num-val warn" id="m21-val2">+7.2%</div>
-            </div>
-            <div class="num-box warn">
-              <div class="num-lbl">손익 영향액 추정</div>
-              <div class="num-val warn">176억원</div>
-            </div>
-          </div>
-
-          <!-- 차트 영역 및 범례 선택 바 -->
-          <div class="chart-container" style="display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;background:var(--deep);border-radius:8px;border:1px solid var(--border);">
-              <span style="font-size:12.5px;font-weight:700;color:var(--sub);margin-right:4px;">품목 선택:</span>
-              ${MAT_DATA.items.map(m => `
-                <button class="scn-btn ${activeMats[m.id]?'active':''}" id="mat-btn-${m.id}" onclick="toggleMat('${m.id}')" style="padding:4px 10px;font-size:12px;">
-                  ${m.shape} ${m.name}
-                </button>
-              `).join('')}
-            </div>
-            <div class="svg-canvas" id="c21-svg-box"></div>
-          </div>
-        </div>
-
-        <!-- 우측: 현장별 단가계약 변동시점 손익 영향 현황 -->
-        <div class="card miss flex-col" style="flex:1;">
-          <div class="panel-head">
-            <div>
-              <div class="p-title">현장별 단가계약 변동시점 손익 영향 현황</div>
-              <div class="p-sub">자재별 단가계약 인상 시점(2020~2026년 백데이터) 및 진행 현장 손실 영향 추정</div>
-            </div>
-            <div class="badge danger">변동시점 추적</div>
-          </div>
-
-          <div class="tracker-box">
-            <div class="tracker-title">단가계약 인상 시점 및 진행 현장 손익 영향 백데이터</div>
-            <div class="task-list">
-              <div class="task-item fail">
-                <div class="left"><span class="icon-fail">⚠</span> <strong>레미탈 (중부권) — 2022년 7월 단가계약 인상</strong> (포당 2,900원 → 3,650원, +25.9%)</div>
-                <span class="amt red">-14.2억 손실</span>
-              </div>
-              <div class="task-item fail">
-                <div class="left"><span class="icon-fail">⚠</span> <strong>케이블 (CV 35SQ) — 2024년 1월 & 2026년 7월 2차 인상</strong> (m당 6,318원 → 8,341원, +32.0%)</div>
-                <span class="amt red">-32.5억 손실</span>
-              </div>
-              <div class="task-item fail">
-                <div class="left"><span class="icon-fail">⚠</span> <strong>시멘트 (BULK) — 2021년 7월 & 2023년 7월 연속 인상</strong> (TON당 66,500원 → 99,000원, +48.9%)</div>
-                <span class="amt red">-28.0억 손실</span>
-              </div>
-              <div class="task-item warn">
-                <div class="left"><span class="icon-warn">●</span> 석고보드 (일반 9.5T) — 2022년 7월 단가계약 인상 (매당 2,350원 → 3,120원, +32.8%)</div>
-                <span class="amt amber">-8.6억 손실</span>
-              </div>
-              <div class="task-item warn">
-                <div class="left"><span class="icon-warn">●</span> 강관류 (흑관 SPP D15) — 2021년 7월 & 2026년 7월 인상 (m당 1,290원 → 1,390원, +7.8%)</div>
-                <span class="amt amber">-6.4억 손실</span>
-              </div>
-            </div>
-          </div>
-          <div class="note">* 진행 현장별 자재 투입량 및 인상 시점 조합 손익 영향액 추정 (Main: 외주구매)</div>
-        </div>
-      </div>
-    `;
-    drawChart21();
-  }
 
   let lastC21Cid = null;
 
@@ -2560,94 +2407,21 @@ const UNYEONG = {
     box.innerHTML = svg;
   }
 
+  /* ══════════ 2.2 품목별 자재계약 절감액 10종 백데이터 ══════════ */
   const CONTRACT_BD = [
     { cat:"공조기류", site:"평택 사무3동 신축", budget:415.3, bid:363.7, sav:51.6, rate:12.4, vendor:"(주)신성이엔지 외" },
     { cat:"거푸집 공사", site:"아산 벨코어 스위첸", budget:259.7, bid:226.9, sav:32.8, rate:12.6, vendor:"(주)삼우폼텍 외" },
     { cat:"배전제어기기", site:"안성 당목리 물류", budget:417.8, bid:391.2, sav:26.6, rate:6.4, vendor:"(주)LS일렉트릭 외" },
     { cat:"단열재 공사", site:"대전 에테르 스위첸", budget:213.4, bid:192.7, sav:20.7, rate:9.7, vendor:"(주)벽산 외" },
-    { cat:"가구류", site:"인천 루원시티 스위첸", budget:279.5, bid:271.0, sav:8.5, rate:3.0, vendor:"(주)한샘 외" },
+    { cat:"창호 공사 (전동셔터)", site:"김포 학운 물류단지", budget:84.2, bid:69.5, sav:14.7, rate:17.5, vendor:"(주)삼성이엔지 외" },
+    { cat:"가구류 (수납장)", site:"인천 루원시티 스위첸", budget:279.5, bid:271.0, sav:8.5, rate:3.0, vendor:"(주)한샘 외" },
     { cat:"바닥재 공사", site:"천안 백석 스위첸", budget:52.6, bid:45.9, sav:6.7, rate:12.9, vendor:"(주)LX하우시스 외" },
+    { cat:"조경 수목 공사", site:"화성 동탄 스위첸", budget:35.0, bid:28.8, sav:6.2, rate:17.7, vendor:"(주)한일조경 외" },
     { cat:"사인물 공사", site:"울산 용혁 스위첸", budget:8.7, bid:5.6, sav:3.1, rate:35.1, vendor:"(주)제일기획 외" },
-    { cat:"기계장치", site:"평택 포승 물류센터", budget:10.5, bid:8.2, sav:2.3, rate:22.3, vendor:"(주)대림기공 외" },
+    { cat:"기계장치 (펌프류)", site:"평택 포승 물류센터", budget:10.5, bid:8.2, sav:2.3, rate:22.3, vendor:"(주)대림기공 외" },
   ];
 
   let bdSortMode = 'sav';
-
-  function renderCustom22(container) {
-    container.innerHTML = `
-      <div class="panel-grid">
-        <!-- 좌측: 5개년 자재계약 낙찰률 비교 -->
-        <div class="card ok flex-col" style="flex:1;">
-          <div class="panel-head">
-            <div>
-              <div class="p-title">5개년 자재계약 낙찰률 비교</div>
-              <div class="p-sub">2021년 ~ 2025년 자재 및 하도급 외주계약 연도별 낙찰률 추이</div>
-            </div>
-            <div class="badge ok">5개년 비교</div>
-          </div>
-
-          <!-- 상단 4개 지표 박스 -->
-          <div class="num-dashboard">
-            <div class="num-box ok">
-              <div class="num-lbl">누적 가중낙찰률</div>
-              <div class="num-val">91.6%</div>
-            </div>
-            <div class="num-box ok">
-              <div class="num-lbl">누적 절감액 (절초감)</div>
-              <div class="num-val">605.4억원</div>
-            </div>
-            <div class="num-box ok">
-              <div class="num-lbl">2025년 낙찰률</div>
-              <div class="num-val">84.9%</div>
-            </div>
-            <div class="num-box ok">
-              <div class="num-lbl">낙찰률 개선폭</div>
-              <div class="num-val">-12.7%p</div>
-            </div>
-          </div>
-
-          <!-- 5개년 낙찰률 차트 -->
-          <div class="chart-container">
-            <div class="custom-legend"><span style="color:#22c55e;">━━ 연도별 예산 대비 낙찰률 (%)</span><span style="color:#7e93ab;">╌╌ 관리 목표선 (90.0%)</span></div>
-            <div class="svg-canvas" id="c22-chart-box"></div>
-          </div>
-        </div>
-
-        <!-- 우측: 품목별 자재계약 절감액 현황 -->
-        <div class="card ok flex-col" style="flex:1;">
-          <div class="panel-head" style="align-items:center;">
-            <div>
-              <div class="p-title">품목별 자재계약 절감액 현황</div>
-              <div class="p-sub">공급가액 1억원 이상 주요 자재계약 절감액 및 절감율 나열 (BD 백데이터 연동)</div>
-            </div>
-            <!-- 정렬 선택 버튼 2개 -->
-            <div style="display:flex;gap:6px;">
-              <button class="scn-btn ${bdSortMode==='sav'?'active':''}" id="bd-btn-sav" onclick="setBDSort('sav')">절감액 기준 (디폴트)</button>
-              <button class="scn-btn ${bdSortMode==='rate'?'active':''}" id="bd-btn-rate" onclick="setBDSort('rate')">절감율 기준</button>
-            </div>
-          </div>
-
-          <div class="tracker-box">
-            <div class="tracker-title">주요 자재/하도급 입찰계약 절감 현황 (공급가 1.0억원 이상)</div>
-            <div id="bd-list-box">${getBDListHtml()}</div>
-          </div>
-          <div class="note">* 공급가액 1.0억원 이상 자재 및 하도급 외주계약 대상 (BD 시트 백데이터 기준)</div>
-        </div>
-      </div>
-    `;
-
-    renderChart22();
-    renderBDList();
-  }
-
-  function renderChart22() {
-    const box = $('c22-chart-box');
-    if(!box) return;
-    lineChart(box, [
-      { data:[90,90,90,90,90], color:"#7e93ab", dash:"5,5" },
-      { data:[97.6,99.1,90.8,89.8,84.9], color:"#22c55e", dots:true, width:3, vlab:true, lab:["97.6%","99.1%","90.8%","89.8%","84.9%"] }
-    ], 105, ["2021년","2022년","2023년","2024년","2025년"]);
-  }
 
   function setBDSort(mode) {
     bdSortMode = mode;
@@ -2702,9 +2476,10 @@ const UNYEONG = {
     document.querySelectorAll(`#${mountId}-subtabs .sub-tab`).forEach(el=>el.classList.toggle('active', el.id===`${mountId}-tab-${sid}`));
     const cards = D.화면[sid]||[];
     const content = $(`${mountId}-content`);
+    if(!content) return;
     const cids = cards.map((_,i)=>`${mountId}-${sid}-c${i}`);
     content.innerHTML = `<div class="panel-grid">`+cards.map((c,i)=>cardHtml(c,cids[i])).join('')+`</div>`;
-    // 차트 렌더
+
     cards.forEach((c,i)=>{
       if(c.type==='metrics_c21'){ drawChart21(cids[i]); return; }
       if(c.type==='bd_table'){ renderBDList(); return; }
@@ -2794,8 +2569,5 @@ const UNYEONG = {
   renderGeneric('mount-3', JAGEUM);
   renderGeneric('mount-4', IIK);
   renderGeneric('mount-5', UNYEONG);
-  selectMain(1);   // 첫 화면
-
+  selectMain(1);
 </script>
-</body>
-</html>
