@@ -1768,7 +1768,6 @@ const IIK = {
           {lbl:"전년 대비 상승률", val:"+7.2%", cls:"warn"},
           {lbl:"손익 영향액 추정", val:"176억원", cls:"warn"},
         ],
-        msg:{lv:"danger", txt:"<strong>[원가 리스크] 8대 자재 종합 가격인덱스 2020년(100.0) 대비 162.5 (+62.5% 누적 상승)</strong> — 케이블(+215.1%), 시멘트(+76.3%), 레미탈(+53.6%) 인상에 따른 원가 부담 가중"},
         note:"* 자재별 각자 2020년 계약단가를 100.0 인덱스로 환산하여 물가 인상분 추적 관리 (Main: 외주구매)",
       },
       { type:"list", accent:"miss", title:"현장별 단가계약 변동시점 손익 영향 현황", sub:"자재별 단가계약 인상 시점(2020~2026년 백데이터) 및 진행 현장 손실 영향 추정", badge:{lv:"danger",txt:"변동시점 추적"},
@@ -2175,6 +2174,71 @@ const UNYEONG = {
 
     if(card.boxes){
       const c3Cls = card.boxes.length===3 ? 'c3' : '';
+      inner += `<div class="num-dashboard ${c3Cls}">`+card.boxes.map((b, bi)=>`
+        <div class="num-box ${b.cls||''}">
+          <div class="num-lbl" id="${card.type==='metrics_c21' && bi<2 ? 'm21-lbl'+(bi+1) : ''}">${b.lbl}</div>
+          <div class="num-val ${b.cls||''}" id="${card.type==='metrics_c21' && bi<2 ? 'm21-val'+(bi+1) : ''}">${b.val}</div>
+        </div>
+      `).join('')+`</div>`;
+    }
+
+    if(card.msg){ inner += `<div class="warning-msg ${card.msg.lv==='ok'?'safe':card.msg.lv}">${card.msg.txt}</div>`; }
+
+    if(card.listTitle){
+      inner += `<div class="tracker-box"><div class="tracker-title">${card.listTitle}</div><div class="task-list">${card.items.map(taskItem).join('')}</div></div>`;
+    }
+
+    if(card.type === 'metrics_c21') {
+      inner += `<div class="chart-container" style="display:flex;flex-direction:column;gap:10px;flex-grow:1;min-height:300px;">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;background:var(--deep);border-radius:8px;border:1px solid var(--border);">
+          <span style="font-size:12.5px;font-weight:700;color:var(--sub);margin-right:4px;">품목 선택:</span>
+          ${MAT_DATA.items.map(m => `
+            <button class="scn-btn ${activeMats[m.id]?'active':''}" id="mat-btn-${m.id}" onclick="toggleMat('${m.id}')" style="padding:4px 10px;font-size:12px;">
+              ${m.shape} ${m.name}
+            </button>
+          `).join('')}
+        </div>
+        <div class="svg-canvas" id="${cid}" style="min-height:280px;width:100%;"></div>
+      </div>`;
+    }
+
+    if(card.type === 'bd_table') {
+      inner += `<div class="tracker-box">
+        <div class="tracker-title">주요 자재/하도급 입찰계약 절감 현황 (공급가 1.0억원 이상)</div>
+        <div id="bd-list-box">${getBDListHtml()}</div>
+      </div>`;
+    }
+
+    if(card.chart){
+      const lg = (card.chart.legend||[]).map(l=>`<span style="color:${l.c};">${l.t}</span>`).join('');
+      inner += `<div class="chart-container"><div class="custom-legend">${lg}</div><div class="svg-canvas" id="${cid}"></div></div>`;
+    }
+
+    if(card.note){ inner += `<div class="note">${card.note}</div>`; }
+
+    return `<div class="card ${accent} flex-col">${inner}</div>`;
+  }
+
+  function badgeHtml(b){ return `<div class="badge ${BADGE[b.lv][0]}">${BADGE[b.lv][1]} ${b.txt}</div>`; }
+  function taskItem(it){
+    const icon = it.st==='done'?'<span class="icon-done">✔</span>':it.st==='warn'?'<span class="icon-warn">●</span>':'<span class="icon-fail">⚠</span>';
+    const nm = it.st==='fail'?`<strong style="color:#ffb3ad">${it.name}</strong>`:it.name;
+    return `<div class="task-item ${it.st}"><div class="left">${icon} ${nm}</div>${it.amt?`<span class="amt ${it.cls||''}">${it.amt}</span>`:''}</div>`;
+  }
+  function cardHtml(card, cid){
+    const accent = card.accent||'amber';
+    let inner = `<div class="panel-head"><div><div class="p-title">${card.title}</div><div class="p-sub">${card.sub||''}</div></div>`;
+    if(card.type === 'bd_table') {
+      inner += `<div style="display:flex;gap:6px;align-items:center;">
+        <button class="scn-btn ${bdSortMode==='sav'?'active':''}" id="bd-btn-sav" onclick="setBDSort('sav')">절감액 기준 (디폴트)</button>
+        <button class="scn-btn ${bdSortMode==='rate'?'active':''}" id="bd-btn-rate" onclick="setBDSort('rate')">절감율 기준</button>
+      </div></div>`;
+    } else {
+      inner += `${card.badge?badgeHtml(card.badge):''}</div>`;
+    }
+
+    if(card.boxes){
+      const c3Cls = card.boxes.length===3 ? 'c3' : '';
       inner += `<div class="num-dashboard ${c3Cls}">`+card.boxes.map(b=>`<div class="num-box ${b.cls||''}"><div class="num-lbl">${b.lbl}</div><div class="num-val">${b.val}</div></div>`).join('')+`</div>`;
     }
 
@@ -2396,6 +2460,8 @@ const UNYEONG = {
     drawChart21();
   }
 
+  let lastC21Cid = null;
+
   function toggleMat(id) {
     activeMats[id] = !activeMats[id];
     const btn = $(`mat-btn-${id}`);
@@ -2404,29 +2470,35 @@ const UNYEONG = {
       btn.classList.toggle('active', activeMats[id]);
     }
 
-    // Dynamic metrics update
+    const lbl1 = $(`m21-lbl1`);
+    const val1 = $(`m21-val1`);
+    const lbl2 = $(`m21-lbl2`);
+    const val2 = $(`m21-val2`);
+
     if(activeMats[id] && id !== 'total'){
-      $(`m21-lbl1`).textContent = `${m.name} 2020년 대비 상승률`;
-      $(`m21-val1`).textContent = m.cum;
-      $(`m21-lbl2`).textContent = `${m.name} 전년 대비 상승률`;
-      $(`m21-val2`).textContent = m.yr;
+      if(lbl1) lbl1.textContent = `${m.name} 2020년 대비 상승률`;
+      if(val1) val1.textContent = m.cum;
+      if(lbl2) lbl2.textContent = `${m.name} 전년 대비 상승률`;
+      if(val2) val2.textContent = m.yr;
     } else {
-      $(`m21-lbl1`).textContent = `2020년 대비 누적 상승률`;
-      $(`m21-val1`).textContent = `+62.5%`;
-      $(`m21-lbl2`).textContent = `전년 대비 상승률`;
-      $(`m21-val2`).textContent = `+7.2%`;
+      if(lbl1) lbl1.textContent = `2020년 대비 누적 상승률`;
+      if(val1) val1.textContent = `+62.5%`;
+      if(lbl2) lbl2.textContent = `전년 대비 상승률`;
+      if(val2) val2.textContent = `+7.2%`;
     }
 
-    drawChart21();
+    drawChart21(lastC21Cid);
   }
 
   function drawChart21(cid) {
-    const targetId = cid || 'c21-svg-box';
+    if(cid) lastC21Cid = cid;
+    const targetId = cid || lastC21Cid || 'c21-svg-box';
     let box = $(targetId);
     if(!box) box = $('c21-svg-box');
     if(!box) return;
+
     const w = box.clientWidth || 580;
-    const h = 260;
+    const h = 280;
     const padL = 35, padR = 25, padT = 20, padB = 25;
     const chartW = w - padL - padR;
     const chartH = h - padT - padB;
