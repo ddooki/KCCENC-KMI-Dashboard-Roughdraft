@@ -1134,18 +1134,19 @@ const DATA = {
 
   // DATA 로드 보장 후 렌더 (외부 data.js 로딩 타이밍 방어)
   function initDashboard(){
-    if(typeof DATA===&#x27;undefined&#x27;){ setTimeout(initDashboard, 50); return; }
+{{ ... }}
+    if(typeof DATA==='undefined'){ setTimeout(initDashboard, 50); return; }
     render();
     selectCat(1);
   }
-  if(document.readyState===&#x27;loading&#x27;){
-    document.addEventListener(&#x27;DOMContentLoaded&#x27;, initDashboard);
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', initDashboard);
   } else {
     initDashboard();
   }
-&lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;
+</script>
+</body>
+</html>
 " title="수주"></iframe></div>
   <!-- 공정: 범용 렌더 -->
   <div class="dv" id="stage-2"><div id="mount-2"></div></div>
@@ -1360,10 +1361,10 @@ const GONGJEONG = {
           {lbl:"적정선 대비 초과", val:"+1.9%p", cls:"warn"},
         ],
         msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 재무위험 비율 16.9%(120개사)로 적정선(15.0%) 초과(+1.9%p) — 신용 B-이하 또는 현금 D/E등급 위험업체 발주 제한 및 대체업체 사전 확보"},
-        chart:{kind:"line", maxY:22, labels:["24년 1H","24년 2H","25년 1월","25년 3월","25년 5월","25년 마감"],
+        chart:{kind:"line", minY:12, maxY:20, labels:["23년 1H","23년 2H","24년 1H","24년 2H","25년 1H","25년 2H"],
           series:[
             {data:[15,15,15,15,15,15], color:"#7e93ab", dash:"5,5"},
-            {data:[16.4,16.7,16.8,16.8,16.9,16.9], color:"#ff6969", dots:true, width:3, vlab:true, lab:["16.4%","16.7%","16.8%","16.8%","16.9%","16.9%"]},
+            {data:[16.0,16.0,16.5,16.5,16.9,16.9], color:"#ff6969", dots:true, width:3, vlab:true, lab:["16.0%","16.0%","16.5%","16.5%","16.9%","16.9%"]},
           ],
           legend:[{c:"#7e93ab",t:"╌╌ 적정선(15.0%)"},{c:"#ff6969",t:"━━ 재무위험 비율 추이"}]},
       },
@@ -1769,7 +1770,7 @@ const IIK = {
         boxes:[
           {lbl:"2020년 대비 누적 상승률", val:"+62.5%", cls:"danger"},
           {lbl:"전년 대비 상승률", val:"+7.2%", cls:"warn"},
-          {lbl:"손익 영향액 (추정)", val:"176억원", cls:"warn"},
+          {lbl:"손익 영향액 (추정)", val:"-176억원", cls:"danger"},
         ],
         note:"* 자재별 각자 2020년 계약단가를 100.0 인덱스로 환산하여 물가 인상분 추적 관리",
       },
@@ -2199,8 +2200,8 @@ const UNYEONG = {
       const c3Cls = card.boxes.length===3 ? 'c3' : '';
       inner += `<div class="num-dashboard ${c3Cls}">`+card.boxes.map((b, bi)=>`
         <div class="num-box ${b.cls||''}">
-          <div class="num-lbl" id="${card.type==='metrics_c21' && bi<2 ? 'm21-lbl'+(bi+1) : ''}">${b.lbl}</div>
-          <div class="num-val ${b.cls||''}" id="${card.type==='metrics_c21' && bi<2 ? 'm21-val'+(bi+1) : ''}">${b.val}</div>
+          <div class="num-lbl" id="${card.type==='metrics_c21' && bi<3 ? 'm21-lbl'+(bi+1) : ''}">${b.lbl}</div>
+          <div class="num-val ${b.cls||''}" id="${card.type==='metrics_c21' && bi<3 ? 'm21-val'+(bi+1) : ''}">${b.val}</div>
         </div>
       `).join('')+`</div>`;
     }
@@ -2328,6 +2329,7 @@ const UNYEONG = {
     const val1 = $(`m21-val1`);
     const lbl2 = $(`m21-lbl2`);
     const val2 = $(`m21-val2`);
+    const val3 = $(`m21-val3`);
 
     if(activeMats[id] && id !== 'total'){
       if(lbl1) lbl1.textContent = `${m.name} 2020년 대비 상승률`;
@@ -2339,6 +2341,26 @@ const UNYEONG = {
       if(val1) val1.textContent = `+62.5%`;
       if(lbl2) lbl2.textContent = `전년 대비 상승률`;
       if(val2) val2.textContent = `+7.2%`;
+    }
+
+    // Dynamic 손익 영향액 (추정) sign logic
+    const activeList = MAT_DATA.items.filter(item => activeMats[item.id] && item.id !== 'total');
+    let totalImpact = 0;
+    if(activeList.length === 0 || MAT_DATA.items.filter(item => activeMats[item.id]).length === MAT_DATA.items.length) {
+      totalImpact = -176;
+    } else {
+      activeList.forEach(item => {
+        const cumNum = parseFloat(item.cum.replace('%',''));
+        if(!isNaN(cumNum)) {
+          totalImpact -= Math.round(cumNum * 0.8 * 10) / 10;
+        }
+      });
+    }
+
+    if(val3) {
+      const signFmt = totalImpact > 0 ? `+${totalImpact.toFixed(1)}억원` : (totalImpact < 0 ? `${totalImpact.toFixed(1)}억원` : `0.0억원`);
+      val3.textContent = signFmt;
+      val3.className = `num-val ${totalImpact < 0 ? 'danger' : 'ok'}`;
     }
 
     drawChart21(lastC21Cid);
