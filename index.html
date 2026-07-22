@@ -2200,7 +2200,7 @@ const UNYEONG = {
       el.id=`${mountId}-cat-${ci+1}`;
       catbar.appendChild(el);
     });
-    root.insertBefore(catbar, root.firstChild.nextSibling); // sub-head 아래
+    root.insertBefore(catbar, root.children[1] || null); // sub-head 아래
 
     root._data = D;
     selectGCat(mountId, D, 1);
@@ -2555,6 +2555,97 @@ const UNYEONG = {
     const box = $('bd-list-box');
     if(box) box.innerHTML = getBDListHtml();
   }
+
+  /* ══════════ 화면 전환 렌더러 ══════════ */
+  function selectGScreen(mountId, D, sid){
+    document.querySelectorAll(`#${mountId}-subtabs .sub-tab`).forEach(el=>el.classList.toggle('active', el.id===`${mountId}-tab-${sid}`));
+    const cards = D.화면[sid]||[];
+    const content = $(`${mountId}-content`);
+    const cids = cards.map((_,i)=>`${mountId}-${sid}-c${i}`);
+    content.innerHTML = `<div class="panel-grid">`+cards.map((c,i)=>cardHtml(c,cids[i])).join('')+`</div>`;
+    // 차트 렌더
+    cards.forEach((c,i)=>{
+      if(c.type==='metrics_c21'){ drawChart21(cids[i]); return; }
+      if(c.type==='bd_table'){ renderBDList(); return; }
+      if(c.type==='sim'){ renderSim(c, cids[i]); return; }
+      if(!c.chart) return;
+      const el=$(cids[i]); if(!el) return;
+      if(c.chart.kind==='line') lineChart(el, c.chart.series, c.chart.maxY, c.chart.labels);
+      else if(c.chart.kind==='bar') barChart(el, c.chart.data, c.chart.labels, c.chart.color);
+    });
+  }
+
+  /* ── 미분양 손실 시뮬레이터 (현장별 표) ── */
+  function renderSim(card, cid){
+    const 현장 = card.현장;
+    const fmt = v => Math.round(v).toLocaleString();
+    function calc(rate){
+      return 현장.map(s=>{
+        const 미분양 = s.도급 * (1 - s.분양률/100);
+        const 손실 = 미분양 * rate/100;
+        return { ...s, 미분양, 손실 };
+      });
+    }
+    function update(rate){
+      const rows = calc(rate);
+      const 총미분양 = rows.reduce((a,r)=>a+r.미분양,0);
+      const 총손실 = rows.reduce((a,r)=>a+r.손실,0);
+      const 총도급 = rows.reduce((a,r)=>a+r.도급,0);
+
+      const unsoldEl = $(`${cid}-unsold`);
+      if(unsoldEl) unsoldEl.textContent = `${fmt(총미분양)}억 (${(총미분양/총도급*100).toFixed(1)}%)`;
+      const lossEl = $(`${cid}-loss`);
+      if(lossEl) lossEl.textContent = `${fmt(총손실)}억원`;
+
+      card.할인율.forEach(r=> { const b=$(`${cid}-b-${r}`); if(b) b.classList.toggle('active', r===rate); });
+
+      const tbody = $(`${cid}-tbody`);
+      if(!tbody) return;
+      const sorted = [...rows].sort((a,b)=>b.손실-a.손실);
+      const maxLoss = Math.max(...sorted.map(r=>r.손실), 1);
+
+      tbody.innerHTML = sorted.map(r=>{
+        const pct = Math.round(r.손실/maxLoss*100);
+        const lossTxt = r.손실>0 ? `-${fmt(r.손실)}억` : '0억';
+        return `<tr>
+          <td style="font-weight:700;">${r.name}</td>
+          <td>${r.cat}</td>
+          <td class="num">${fmt(r.도급)}억</td>
+          <td class="num">${r.분양률}%</td>
+          <td class="num danger" style="font-weight:700;">${fmt(r.미분양)}억</td>
+          <td class="num danger" style="font-weight:800;color:var(--miss);">${lossTxt}</td>
+          <td style="width:140px;">
+            <div style="background:var(--bg);height:8px;border-radius:4px;overflow:hidden;">
+              <div style="background:var(--miss);height:100%;width:${pct}%;"></div>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    const btns = $(`${cid}-btns`);
+    if(btns){
+      btns.innerHTML = `<span class="scn-lbl">할인율 시나리오 (전 현장 일괄 적용)</span>` +
+        card.할인율.map(r=>`<button class="scn-btn${r===15?' active':''}" id="${cid}-b-${r}" onclick="window._simUpd['${cid}'](${r})">${r}% 할인</button>`).join('');
+    }
+
+    window._simUpd = window._simUpd || {};
+    window._simUpd[cid] = update;
+    update(15);
+  }
+
+  /* ── 수주 iframe 높이 동적 맞춤 ── */
+  function fitIframe(){
+    const f = $('iframe-수주');
+    if(!f) return;
+    try {
+      const doc = f.contentWindow ? f.contentWindow.document : f.contentDocument;
+      if(!doc) return;
+      const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
+      f.style.height = h + 'px';
+    } catch(e){}
+  }
+  window.addEventListener('resize', fitIframe);
 
   /* ══════════ 초기화 ══════════ */
   buildMainTabs();
