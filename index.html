@@ -1671,7 +1671,7 @@ const IIK = {
 
   대분류: [
     { name:"현장 손익관리", desc:"준공 원가율·설계변경 → 손실 전환 조기 포착", status:{lv:"danger",txt:"경보 1"} },
-    { name:"원가환경 리스크", desc:"자재·노무단가 → 원가율 상승 선행 감지", status:{lv:"warn",txt:"주의 1"} },
+    { name:"계약 원가 관리", desc:"자재 노무단가 변동률 · 예산 대비 낙찰률", status:{lv:"warn",txt:"주의 1"} },
     { name:"전사 손익건전성", desc:"이익률·충당 리스크 결과지표 모니터링", status:{lv:"warn",txt:"주의 1"} },
   ],
 
@@ -1681,8 +1681,8 @@ const IIK = {
       { id:"1-2", name:"1.2 변경·클레임" },
     ],
     "2": [
-      { id:"2-1", name:"2.1 자재·노무단가" },
-      { id:"2-2", name:"2.2 외주계약" },
+      { id:"2-1", name:"2.1 자재 노무단가 변동률" },
+      { id:"2-2", name:"2.2 예산 대비 낙찰률" },
     ],
     "3": [
       { id:"3-1", name:"3.1 이익의 질" },
@@ -1752,45 +1752,45 @@ const IIK = {
       },
     ],
 
-    /* ── 2.1 자재·노무단가 (선행) ── */
+    /* ── 2.1 자재 노무단가 변동률 ── */
     "2-1": [
-      { type:"metrics", accent:"amber", title:"주요 자재가격 변동률", sub:"원가율 상승의 외부 선행요인 | 전년 동월 대비", badge:{lv:"warn",txt:"상승"},
+      { type:"metrics", accent:"amber", title:"자재 노무단가 변동률", sub:"시장단가 상승에 따른 원가 영향 확인 | Main: 외주구매 · Support: 인프라·건축", badge:{lv:"warn",txt:"상승"},
         boxes:[
-          {lbl:"철근", val:"+8.2%", cls:"warn"},
-          {lbl:"레미콘", val:"+5.4%", cls:"warn"},
-          {lbl:"시멘트", val:"+6.8%", cls:"warn"},
-          {lbl:"가중 평균", val:"+6.9%", cls:"warn"},
+          {lbl:"단가 변동률", val:"+4.8%", cls:"warn"},
+          {lbl:"원가 영향액", val:"148억", cls:"warn"},
+          {lbl:"골조·자재 상승", val:"+6.2%", cls:"warn"},
+          {lbl:"전년 동기", val:"+2.9%"},
         ],
-        msg:{lv:"warn", txt:"<strong>[주의]</strong> 주요 자재 가중평균 +6.9% 상승 — 원가율 악화의 선행 신호. 미착공 현장 실행예산 재검토 및 사전 조달 검토 필요"},
-        chart:{kind:"line", maxY:12, labels:["1월","2월","3월","4월","5월","6월"],
+        msg:{lv:"warn", txt:"<strong>[주의] 시장단가 상승에 따른 원가 영향 감지</strong> — 변동률 = (당월 단가 - 기준 단가) ÷ 기준 단가 × 100<br>ㆍ<strong>실행방법:</strong> 주요 자재·외주공종 단가 월별 집계 → 잔여물량 기준 원가 영향액(148억) 산출<br>ㆍ<strong>담당부서:</strong> Main: 외주구매 / Support: 인프라·건축"},
+        chart:{kind:"line", maxY:8, labels:["1월","2월","3월","4월","5월","6월"],
           series:[
-            {data:[3.2,4.1,4.8,5.5,6.2,6.9], color:"#ffad42", dots:true, width:3, vlab:true, lab:["3.2%","4.1%","4.8%","5.5%","6.2%","6.9%"]},
+            {data:[2.9,3.2,3.7,4.1,4.5,4.8], color:"#ffad42", dots:true, width:3, vlab:true, lab:["2.9%","3.2%","3.7%","4.1%","4.5%","4.8%"]},
           ],
-          legend:[{c:"#ffad42",t:"━━ 자재 가중평균 변동률(전년比)"}]},
+          legend:[{c:"#ffad42",t:"━━ 자재·노무 단가 변동률"}]},
       },
-      { type:"metrics", accent:"amber", title:"노무단가 상승률", sub:"주요 공종 노무비 단가 | 인건비 압박 감지", badge:{lv:"warn",txt:"상승"},
+      { type:"metrics", accent:"amber", title:"주요 자재·노무 단가 집계 및 원가 영향액", sub:"잔여물량 기준 원가 영향액 (단가 상승분 × 잔여물량)", badge:{lv:"warn",txt:"영향 148억"},
         boxes:[
-          {lbl:"노무단가 상승률", val:"+5.1%", cls:"warn"},
-          {lbl:"철근공", val:"+6.8%", cls:"warn"},
-          {lbl:"형틀목공", val:"+5.9%", cls:"warn"},
-          {lbl:"인력 수급난", val:"심화", cls:"warn"},
+          {lbl:"철근·레미콘", val:"+6.8%", cls:"warn"},
+          {lbl:"형틀·골조노무", val:"+5.9%", cls:"warn"},
+          {lbl:"원가 영향액", val:"148억", cls:"warn"},
+          {lbl:"집계 대상", val:"18개 공종"},
         ],
-        msg:{lv:"warn", txt:"<strong>[주의]</strong> 노무단가 +5.1% 상승·숙련공 수급난 심화 — 공기지연 및 원가 상승 이중 리스크. 05 운영 현장기술인력 수급과 연계"},
-        chart:{kind:"bar", color:"#ffad42", labels:["철근공","형틀목공","콘크리트공","전기공"], data:[6.8,5.9,4.6,3.8],
-          legend:[{c:"#ffad42",t:"■ 공종별 노무단가 상승률(%)"}]},
+        msg:{lv:"warn", txt:"<strong>[산출근거]</strong> 원가영향액 = 단가 상승분 × 잔여물량 | 자재·노무 상승이 외주 단가로 전이. 미착공 및 진행 현장 실행예산 재검토 추진"},
+        chart:{kind:"bar", color:"#ffad42", labels:["철근·레미콘","형틀목공","마감공사","전기·설비"], data:[52,44,32,20],
+          legend:[{c:"#ffad42",t:"■ 주요 공종별 추정 원가 영향액(억)"}]},
       },
     ],
 
-    /* ── 2.2 외주계약 ── */
+    /* ── 2.2 예산 대비 낙찰률 ── */
     "2-2": [
-      { type:"metrics", accent:"ok", title:"하도급 낙찰률", sub:"내역 대비 하도급 계약금액 비율 | 원가 절감 여력", badge:{lv:"ok",txt:"정상"},
+      { type:"metrics", accent:"ok", title:"예산 대비 낙찰률", sub:"예산 대비 계약 수준 및 초과 여부 확인 | Main: 외주구매 · Support: 회계", badge:{lv:"ok",txt:"정상"},
         boxes:[
           {lbl:"평균 낙찰률", val:"88.6%", cls:"ok"},
-          {lbl:"전년 동기", val:"90.2%"},
-          {lbl:"목표", val:"90%"},
-          {lbl:"절감 효과", val:"126억", cls:"ok"},
+          {lbl:"실행 예산", val:"1,420억"},
+          {lbl:"낙찰 금액", val:"1,258억", cls:"ok"},
+          {lbl:"절감 효과", val:"162억", cls:"ok"},
         ],
-        msg:{lv:"ok", txt:"<strong>[정상]</strong> 하도급 낙찰률 88.6%로 목표 대비 양호 — 원가 절감 효과 126억. 단, 과도한 저가계약 시 협력사 부실 리스크 병행 점검"},
+        msg:{lv:"ok", txt:"<strong>[정상] 예산 대비 계약 수준 양호 (88.6%)</strong> — 낙찰률 = 낙찰금액 ÷ 실행예산 × 100<br>ㆍ<strong>실행방법:</strong> 실행예산·낙찰금액 비교 → 예산 초과 품목 원인 분석 및 조건 재검토<br>ㆍ<strong>담당부서:</strong> Main: 외주구매 / Support: 회계"},
         chart:{kind:"line", maxY:100, labels:["1월","2월","3월","4월","5월","6월"],
           series:[
             {data:[90,90,90,90,90,90], color:"#7e93ab", dash:"5,5"},
@@ -1798,19 +1798,15 @@ const IIK = {
           ],
           legend:[{c:"#7e93ab",t:"╌╌ 목표(90%)"},{c:"#8cb269",t:"━━ 평균 낙찰률"}]},
       },
-      { type:"metrics", accent:"amber", title:"하도급 단가 변동률", sub:"하도급 계약단가 추이 | 원가 상승 압박", badge:{lv:"warn",txt:"상승"},
-        boxes:[
-          {lbl:"단가 변동률", val:"+4.8%", cls:"warn"},
-          {lbl:"골조공사", val:"+6.2%", cls:"warn"},
-          {lbl:"마감공사", val:"+4.1%", cls:"warn"},
-          {lbl:"전년 동기", val:"+2.9%"},
+      { type:"list", accent:"amber", title:"실행예산 대비 낙찰금액 분석", sub:"예산 초과 품목 원인 분석 및 조건 재검토 현황", badge:{lv:"warn",txt:"재검토 2건"},
+        listTitle:"주요 하도급·외주 계약건별 낙찰률 현황",
+        items:[
+          {st:"done", name:"골조공사 A구역 (실행 320억 / 낙찰 281억)", amt:"87.8%", cls:"green"},
+          {st:"done", name:"마감공사 B동 (실행 180억 / 낙찰 158억)", amt:"87.7%", cls:"green"},
+          {st:"warn", name:"설비공사 C구역 (실행 150억 / 낙찰 149억 - 예산 육박)", amt:"99.3%", cls:"amber"},
+          {st:"fail", name:"특수창호 공종 (실행 60억 / 낙찰 63억 - 예산 초과)", amt:"105.0%", cls:"red"},
         ],
-        msg:{lv:"warn", txt:"<strong>[주의]</strong> 하도급 단가 +4.8% 상승 — 자재·노무 상승이 하도급 단가로 전이. 원가율 상승 압박 지속으로 실행예산 관리 강화 필요"},
-        chart:{kind:"line", maxY:8, labels:["1월","2월","3월","4월","5월","6월"],
-          series:[
-            {data:[2.9,3.2,3.7,4.1,4.5,4.8], color:"#ffad42", dots:true, width:3, vlab:true, lab:["2.9%","3.2%","3.7%","4.1%","4.5%","4.8%"]},
-          ],
-          legend:[{c:"#ffad42",t:"━━ 하도급 단가 변동률"}]},
+        note:"* 실행방법: 실행예산·낙찰금액 비교 → 예산 초과 품목(특수창호 등) 원인 분석 및 계약 조건 재검토 추진 (Main: 외주구매, Support: 회계)",
       },
     ],
 
