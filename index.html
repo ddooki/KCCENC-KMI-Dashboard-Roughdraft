@@ -1755,63 +1755,12 @@ const IIK = {
 
     /* ── 2.1 자재 단가 변동률 ── */
     "2-1": [
-      { type:"metrics", accent:"amber", title:"8대 주요 자재 단가 변동률 및 인덱스 추이", sub:"8대 주요 자재(시멘트·레미콘·철근·레미탈·석고보드·전선관·케이블·강관) 2020년 대비 단가 변동 분석", badge:{lv:"warn",txt:"상승세"},
-        boxes:[
-          {lbl:"2020년 대비 누적상승", val:"+62.5%", cls:"danger"},
-          {lbl:"최다 상승 (케이블)", val:"+215.1%", cls:"danger"},
-          {lbl:"전년 대비 상승률", val:"+7.2%", cls:"warn"},
-          {lbl:"손익 영향액 추정", val:"176억원", cls:"warn"},
-        ],
-        msg:{lv:"warn", txt:"<strong>[원가 리스크] 8대 자재 종합 가격인덱스 2020년(100.0) 대비 162.5 (+62.5% 누적 상승)</strong><br>ㆍ<strong>주요자재 2020년 대비 인덱스:</strong> 케이블 315.1 (+215.1%), 시멘트 176.3 (+76.3%), 레미탈 153.6 (+53.6%), 석고보드 148.9 (+48.9%)<br>ㆍ<strong>원가 대응:</strong> 주요 자재 장기공급계약(MOU) 단가 동결 추진 및 대체 자재 공법 검토 (Main: 외주구매 / Support: 인프라·건축)"},
-        chart:{kind:"line", maxY:350, labels:["20년(기준)","21년","22년","23년","24년","25년","26년(현재)"],
-          series:[
-            {data:[100,118.5,138.2,146.4,152.0,156.8,162.5], color:"#ff6969", dots:true, width:3, vlab:true, lab:["100.0","118.5","138.2","146.4","152.0","156.8","162.5"]},
-            {data:[100,133.6,181.5,176.2,203.6,238.7,315.1], color:"#ffaa00", dash:"3,3"},
-            {data:[100,110.2,130.4,160.7,160.7,157.1,164.9], color:"#38bdf8", dash:"3,3"},
-          ],
-          legend:[{c:"#ff6969",t:"━━ 8대자재 종합 인덱스"},{c:"#ffaa00",t:"╌╌ 케이블 (Index 315.1)"},{c:"#38bdf8",t:"╌╌ 시멘트·레미탈 (Index 164.9)"}]},
-      },
-      { type:"list", accent:"amber", title:"주요 자재별 2020년 대비 계약단가 및 인덱스 현황", sub:"2020년 파슬 단가 기준 현재 계약단가 비교 분석", badge:{lv:"warn",txt:"8대 자재"},
-        listTitle:"주요 자재 품목별 계약단가 및 변동 인덱스 (2020년=100)",
-        items:[
-          {st:"fail", name:"케이블 (0.6/1KV CV 35SQ) — 2020년 2,647원 → 현재 8,341원/m (인덱스 315.1)", amt:"+215.1%", cls:"red"},
-          {st:"fail", name:"시멘트 (보통시멘트 40KG) — 2020년 2,950원 → 현재 5,200원/포 (인덱스 176.3)", amt:"+76.3%", cls:"red"},
-          {st:"warn", name:"레미탈 (미장/조적용 중부권) — 2020년 2,800원 → 현재 4,300원/포 (인덱스 153.6)", amt:"+53.6%", cls:"amber"},
-          {st:"warn", name:"석고보드 (일반석고 9.5T) — 2020년 2,350원 → 현재 3,500원/매 (인덱스 148.9)", amt:"+48.9%", cls:"amber"},
-          {st:"done", name:"강제전선관 (아연도 16MM) — 2020년 2,062원 → 현재 2,495원/m (인덱스 121.0)", amt:"+21.0%", cls:"green"},
-        ],
-        note:"* 자재별 각자 2020년 계약단가를 100.0 인덱스로 환산하여 물가 인상분 추적 관리 (Main: 외주구매)",
-      },
+      { type:"custom_21", title:"자재 단가 변동률 및 인덱스 추이" }
     ],
 
-    /* ── 2.2 예산 대비 낙찰률 ── */
+/* ── 2.2 예산 대비 낙찰률 ── */
     "2-2": [
-      { type:"metrics", accent:"green", title:"예산 대비 외주계약 낙찰률 & 절감 성과 분석", sub:"누적 실행예산 7,228억 대비 입찰계약 6,622억 집계 분석 (BD 백데이터 연동)", badge:{lv:"ok",txt:"605억 절감"},
-        boxes:[
-          {lbl:"누적 가중낙찰률", val:"91.6%", cls:"green"},
-          {lbl:"누적 절감액 (절초감)", val:"605.4억원", cls:"green"},
-          {lbl:"2025년 낙찰률", val:"84.9%", cls:"green"},
-          {lbl:"낙찰률 개선폭", val:"-12.7%p", cls:"green"},
-        ],
-        msg:{lv:"ok", txt:"<strong>[손익 개선] 누적 실행예산 7,228억원 대비 6,622억원 계약 체결 (누적 낙찰률 91.6%, 총 605.4억원 절감 달성)</strong><br>ㆍ<strong>연도별 낙찰률 추이:</strong> 22년 99.1% → 23년 90.8% → 24년 89.8% → <strong>25년 84.9% (절감 성과 253.6억원으로 최고 효율)</strong><br>ㆍ<strong>구매 성과:</strong> 경쟁입찰 확대 및 최적 협력사 선정을 통해 2022년 대비 낙찰률 14.2%p 대폭 개선"},
-        chart:{kind:"line", maxY:105, labels:["2021년","2022년","2023년","2024년","2025년"],
-          series:[
-            {data:[90,90,90,90,90], color:"#7e93ab", dash:"5,5"},
-            {data:[97.6,99.1,90.8,89.8,84.9], color:"#22c55e", dots:true, width:3, vlab:true, lab:["97.6%","99.1%","90.8%","89.8%","84.9%"]},
-          ],
-          legend:[{c:"#22c55e",t:"━━ 연도별 예산 대비 낙찰률 (%)"},{c:"#7e93ab",t:"╌╌ 관리 목표선 (90.0%)"}]},
-      },
-      { type:"list", accent:"green", title:"중분류별 낙찰률 & 손익 절감액 심층 분석", sub:"93개 주요 중분류 품목별 실행예산 대비 입찰낙찰 성과 비교", badge:{lv:"ok",txt:"품목별 분석"},
-        listTitle:"주요 중분류별 실행예산, 입찰계약 및 절감 성과 (BD 연동)",
-        items:[
-          {st:"done", name:"[고절감] 공조기류 (실행 415.3억 / 입찰 363.7억) — 낙찰률 87.6% (절감액 51.6억원)", amt:"51.6억 절감", cls:"green"},
-          {st:"done", name:"[고절감] 거푸집 공사 (실행 259.7억 / 입찰 226.9억) — 낙찰률 87.4% (절감액 32.8억원)", amt:"32.8억 절감", cls:"green"},
-          {st:"done", name:"[고절감] 단열재 공사 (실행 213.4억 / 입찰 192.7억) — 낙찰률 90.3% (절감액 20.7억원)", amt:"20.7억 절감", cls:"green"},
-          {st:"warn", name:"[예산타이트] 가구류 (실행 279.5억 / 입찰 271.0억) — 낙찰률 97.0% (절감액 8.5억원)", amt:"97.0%", cls:"amber"},
-          {st:"warn", name:"[예산타이트] 배전제어기기 (실행 417.8억 / 입찰 391.2억) — 낙찰률 93.6% (절감액 26.6억원)", amt:"93.6%", cls:"amber"},
-        ],
-        note:"* 중분류별 낙찰률 편차 분석을 통한 맞춤형 발주 전략(저낙찰률 품목 노하우 횡전개) 추진 (Main: 외주구매)",
-      },
+      { type:"custom_22", title:"5개년 자재계약 낙찰률 비교" }
     ],
 
     /* ── 3.1 이익의 질 ── */
@@ -2237,6 +2186,368 @@ const UNYEONG = {
     });
     selectGScreen(mountId, D, subs[0].id);
   }
+  /* ═══════════════════════════════════════════════════════════════
+     2.1 자재 단가 변동률 커스텀 인터랙티브 렌더러
+     ═══════════════════════════════════════════════════════════════ */
+  const MAT_DATA = {
+    labels: ["20년(기준)","21년","22년","23년","24년","25년","26년(현재)"],
+    items: [
+      { id:"total", name:"종합 인덱스", shape:"●", color:"#ff4d4d", dash:"", line:[100,118.5,138.2,146.4,152.0,156.8,162.5], cum:"+62.5%", yr:"+7.2%", defaultOn:true },
+      { id:"cable", name:"케이블", shape:"▲", color:"#ffaa00", dash:"5,5", line:[100,133.6,181.5,176.2,203.6,238.7,315.1], cum:"+215.1%", yr:"+32.0%", defaultOn:true },
+      { id:"cement", name:"시멘트", shape:"■", color:"#38bdf8", dash:"5,5", line:[100,122.0,137.3,161.0,161.0,161.0,176.3], cum:"+76.3%", yr:"+9.5%", defaultOn:true },
+      { id:"remital", name:"레미탈", shape:"◆", color:"#4ade80", dash:"3,3", line:[100,103.6,130.4,160.7,160.7,162.5,153.6], cum:"+53.6%", yr:"-5.5%", defaultOn:false },
+      { id:"gypsum", name:"석고보드", shape:"★", color:"#c084fc", dash:"3,3", line:[100,100.0,132.8,141.3,141.3,141.3,148.9], cum:"+48.9%", yr:"+5.4%", defaultOn:false },
+      { id:"pipe", name:"강관류", shape:"⬡", color:"#facc15", dash:"3,3", line:[100,109.0,158.6,142.8,121.4,115.3,99.1], cum:"-0.9%", yr:"+7.8%", defaultOn:false },
+      { id:"conduit", name:"강제전선관", shape:"+", color:"#22d3ee", dash:"3,3", line:[100,109.0,158.7,142.9,131.4,115.4,121.0], cum:"+21.0%", yr:"+4.8%", defaultOn:false },
+    ]
+  };
+
+  let activeMats = {};
+  MAT_DATA.items.forEach(m => { activeMats[m.id] = m.defaultOn; });
+
+  function renderCustom21(container) {
+    container.innerHTML = `
+      <div class="panel-grid">
+        <!-- 좌측: 자재 단가 변동률 및 인덱스 추이 -->
+        <div class="card miss flex-col" style="flex:1;">
+          <div class="head">
+            <div>
+              <div class="title" style="font-size:16px;font-weight:800;">자재 단가 변동률 및 인덱스 추이</div>
+              <div class="sub" style="font-size:12px;color:var(--sub);margin-top:2px;">주요 자재 2020년 대비 단가 변동 및 품목별 인덱스(2020=100.0) 추적</div>
+            </div>
+            <div class="badge warn">인덱스 분석</div>
+          </div>
+
+          <!-- 상단 3개 메트릭스 박스 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px;">
+            <div class="metric-box">
+              <div class="lbl" id="m21-lbl1">2020년 대비 누적 상승률</div>
+              <div class="val danger" id="m21-val1">+62.5%</div>
+            </div>
+            <div class="metric-box">
+              <div class="lbl" id="m21-lbl2">전년 대비 상승률</div>
+              <div class="val warn" id="m21-val2">+7.2%</div>
+            </div>
+            <div class="metric-box">
+              <div class="lbl">손익 영향액 추정</div>
+              <div class="val warn">176억원</div>
+            </div>
+          </div>
+
+          <!-- 자재 선택 범례 버튼 바 -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding:10px 14px;background:var(--bg2);border-radius:10px;border:1px solid var(--border);">
+            <div style="font-size:12px;font-weight:700;color:var(--sub);display:flex;align-items:center;margin-right:6px;">품목 선택:</div>
+            ${MAT_DATA.items.map(m => `
+              <button class="mat-btn ${activeMats[m.id]?'active':''}" id="mat-btn-${m.id}" onclick="toggleMat('${m.id}')"
+                style="padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid ${activeMats[m.id]?m.color:'var(--border)'};background:${activeMats[m.id]?'rgba(255,255,255,0.08)':'transparent'};color:${activeMats[m.id]?m.color:'var(--sub)'};">
+                ${m.shape} ${m.name}
+              </button>
+            `).join('')}
+          </div>
+
+          <!-- 인터랙티브 차트 영역 -->
+          <div id="c21-svg-box" style="margin-top:16px;flex:1;min-height:220px;position:relative;"></div>
+        </div>
+
+        <!-- 우측: 현장별 단가계약 변동시점 손익 영향 현황 -->
+        <div class="card miss flex-col" style="flex:1;">
+          <div class="head">
+            <div>
+              <div class="title" style="font-size:16px;font-weight:800;">현장별 단가계약 변동시점 손익 영향 현황</div>
+              <div class="sub" style="font-size:12px;color:var(--sub);margin-top:2px;">자재별 단가계약 인상 시점(2020~2026년) 및 진행 현장 손실 영향 추정</div>
+            </div>
+            <div class="badge danger">변동시점 추적</div>
+          </div>
+          <div class="list-title" style="font-size:13px;font-weight:700;margin-top:14px;">단가계약 인상 시점 및 진행 현장 손익 영향 백데이터</div>
+          <div style="display:flex;flex-col;gap:10px;margin-top:10px;">
+            <div class="item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border-radius:10px;border-left:4px solid var(--red);">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">레미탈 (중부권) — 2022년 7월 단가계약 인상</div>
+                <div style="font-size:12px;color:var(--sub);margin-top:3px;">대표규격: 포당 2,900원 → 3,650원 (+25.9% 인상) | 수도권/강원권 진행 현장 영향</div>
+              </div>
+              <div style="font-size:13px;font-weight:800;color:var(--red);text-align:right;">-14.2억 손실</div>
+            </div>
+            <div class="item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border-radius:10px;border-left:4px solid var(--red);">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">케이블 (CV 35SQ) — 2024년 1월 & 2026년 7월 2차 인상</div>
+                <div style="font-size:12px;color:var(--sub);margin-top:3px;">대표규격: m당 6,318원 → 8,341원 (+32.0% 인상) | 전기 공종 진행 현장 영향</div>
+              </div>
+              <div style="font-size:13px;font-weight:800;color:var(--red);text-align:right;">-32.5억 손실</div>
+            </div>
+            <div class="item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border-radius:10px;border-left:4px solid var(--red);">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">시멘트 (BULK) — 2021년 7월 & 2023년 7월 연속 인상</div>
+                <div style="font-size:12px;color:var(--sub);margin-top:3px;">대표규격: TON당 66,500원 → 99,000원 (+48.9% 인상) | 토목/골조 진행 현장 영향</div>
+              </div>
+              <div style="font-size:13px;font-weight:800;color:var(--red);text-align:right;">-28.0억 손실</div>
+            </div>
+            <div class="item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border-radius:10px;border-left:4px solid var(--amber);">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">석고보드 (일반 9.5T) — 2022년 7월 단가계약 인상</div>
+                <div style="font-size:12px;color:var(--sub);margin-top:3px;">대표규격: 매당 2,350원 → 3,120원 (+32.8% 인상) | 수지/아산 수의 현장 영향</div>
+              </div>
+              <div style="font-size:13px;font-weight:800;color:var(--amber);text-align:right;">-8.6억 손실</div>
+            </div>
+            <div class="item" style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border-radius:10px;border-left:4px solid var(--amber);">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text);">강관류 (흑관 SPP D15) — 2021년 7월 & 2026년 7월 인상</div>
+                <div style="font-size:12px;color:var(--sub);margin-top:3px;">대표규격: m당 1,290원 → 1,390원 (+7.8% 인상) | 배관 공종 진행 현장 영향</div>
+              </div>
+              <div style="font-size:13px;font-weight:800;color:var(--amber);text-align:right;">-6.4억 손실</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--sub);margin-top:12px;">* 진행 현장별 자재 투입 투입량 및 인상 시점 조합 손익 영향액 추정 (Main: 외주구매)</div>
+        </div>
+      </div>
+    `;
+    drawChart21();
+  }
+
+  function toggleMat(id) {
+    activeMats[id] = !activeMats[id];
+    const btn = $(`mat-btn-${id}`);
+    const m = MAT_DATA.items.find(x => x.id === id);
+    if(btn && m){
+      btn.classList.toggle('active', activeMats[id]);
+      btn.style.borderColor = activeMats[id] ? m.color : 'var(--border)';
+      btn.style.background = activeMats[id] ? 'rgba(255,255,255,0.08)' : 'transparent';
+      btn.style.color = activeMats[id] ? m.color : 'var(--sub)';
+    }
+
+    // Dynamic metrics update
+    if(activeMats[id] && id !== 'total'){
+      $(`m21-lbl1`).textContent = `${m.name} 2020년 대비 상승률`;
+      $(`m21-val1`).textContent = m.cum;
+      $(`m21-lbl2`).textContent = `${m.name} 전년 대비 상승률`;
+      $(`m21-val2`).textContent = m.yr;
+    } else {
+      $(`m21-lbl1`).textContent = `2020년 대비 누적 상승률`;
+      $(`m21-val1`).textContent = `+62.5%`;
+      $(`m21-lbl2`).textContent = `전년 대비 상승률`;
+      $(`m21-val2`).textContent = `+7.2%`;
+    }
+
+    drawChart21();
+  }
+
+  function drawChart21() {
+    const box = $('c21-svg-box');
+    if(!box) return;
+    const w = box.clientWidth || 500;
+    const h = 230;
+    const padL = 40, padR = 25, padT = 25, padB = 30;
+    const chartW = w - padL - padR;
+    const chartH = h - padT - padB;
+
+    const activeList = MAT_DATA.items.filter(m => activeMats[m.id]);
+    const maxVal = 330;
+    const minVal = 80;
+
+    const xStep = chartW / (MAT_DATA.labels.length - 1);
+    const getY = (val) => padT + chartH - ((val - minVal) / (maxVal - minVal)) * chartH;
+
+    let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible;">`;
+
+    // Grid lines
+    [100, 150, 200, 250, 300].forEach(v => {
+      const y = getY(v);
+      svg += `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />`;
+      svg += `<text x="${padL-8}" y="${y+4}" fill="var(--sub)" font-size="10" text-anchor="end">${v}</text>`;
+    });
+
+    // X Labels
+    MAT_DATA.labels.forEach((lbl, i) => {
+      const x = padL + i * xStep;
+      svg += `<text x="${x}" y="${h-8}" fill="var(--sub)" font-size="11" text-anchor="middle">${lbl}</text>`;
+    });
+
+    // Draw active lines & distinct markers
+    activeList.forEach(m => {
+      let pts = [];
+      m.line.forEach((v, i) => {
+        const x = padL + i * xStep;
+        const y = getY(v);
+        pts.push(`${x},${y}`);
+      });
+      svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${m.color}" stroke-width="${m.id==='total'?3.5:2}" stroke-dasharray="${m.dash}" />`;
+
+      // Marker shapes
+      m.line.forEach((v, i) => {
+        const x = padL + i * xStep;
+        const y = getY(v);
+        if(m.shape === '●') {
+          svg += `<circle cx="${x}" cy="${y}" r="${m.id==='total'?5:4}" fill="${m.color}" stroke="var(--card)" stroke-width="1.5" />`;
+        } else if(m.shape === '▲') {
+          svg += `<polygon points="${x},${y-5} ${x-4},${y+4} ${x+4},${y+4}" fill="${m.color}" />`;
+        } else if(m.shape === '■') {
+          svg += `<rect x="${x-4}" y="${y-4}" width="8" height="8" fill="${m.color}" />`;
+        } else if(m.shape === '◆') {
+          svg += `<polygon points="${x},${y-5} ${x+4},${y} ${x},${y+5} ${x-4},${y}" fill="${m.color}" />`;
+        } else if(m.shape === '★') {
+          svg += `<text x="${x}" y="${y+4}" fill="${m.color}" font-size="12" text-anchor="middle">★</text>`;
+        } else if(m.shape === '⬡') {
+          svg += `<circle cx="${x}" cy="${y}" r="4" fill="none" stroke="${m.color}" stroke-width="2" />`;
+        } else {
+          svg += `<text x="${x}" y="${y+4}" fill="${m.color}" font-size="13" font-weight="900" text-anchor="middle">+</text>`;
+        }
+      });
+    });
+
+    svg += `</svg>`;
+    box.innerHTML = svg;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     2.2 예산 대비 낙찰률 커스텀 인터랙티브 렌더러 (BD 시트 연동)
+     ═══════════════════════════════════════════════════════════════ */
+  const CONTRACT_BD = [
+    { cat:"공조기류", site:"평택 사무3동 신축", budget:415.3, bid:363.7, sav:51.6, rate:12.4, vendor:"(주)신성이엔지 외" },
+    { cat:"거푸집 공사", site:"아산 벨코어 스위첸", budget:259.7, bid:226.9, sav:32.8, rate:12.6, vendor:"(주)삼우폼텍 외" },
+    { cat:"배전제어기기", site:"안성 당목리 물류", budget:417.8, bid:391.2, sav:26.6, rate:6.4, vendor:"(주)LS일렉트릭 외" },
+    { cat:"단열재 공사", site:"대전 에테르 스위첸", budget:213.4, bid:192.7, sav:20.7, rate:9.7, vendor:"(주)벽산 외" },
+    { cat:"가구류", site:"인천 루원시티 스위첸", budget:279.5, bid:271.0, sav:8.5, rate:3.0, vendor:"(주)한샘 외" },
+    { cat:"바닥재 공사", site:"천안 백석 스위첸", budget:52.6, bid:45.9, sav:6.7, rate:12.9, vendor:"(주)LX하우시스 외" },
+    { cat:"사인물 공사", site:"울산 용혁 스위첸", budget:8.7, bid:5.6, sav:3.1, rate:35.1, vendor:"(주)제일기획 외" },
+    { cat:"기계장치", site:"평택 포승 물류센터", budget:10.5, bid:8.2, sav:2.3, rate:22.3, vendor:"(주)대림기공 외" },
+  ];
+
+  let bdSortMode = 'sav'; // 'sav' (절감액) or 'rate' (절감율)
+
+  function renderCustom22(container) {
+    container.innerHTML = `
+      <div class="panel-grid">
+        <!-- 좌측: 5개년 자재계약 낙찰률 비교 -->
+        <div class="card miss flex-col" style="flex:1;">
+          <div class="head">
+            <div>
+              <div class="title" style="font-size:16px;font-weight:800;">5개년 자재계약 낙찰률 비교</div>
+              <div class="sub" style="font-size:12px;color:var(--sub);margin-top:2px;">2021년 ~ 2025년 자재 및 하도급 외주계약 연도별 낙찰률 추이</div>
+            </div>
+            <div class="badge ok">5개년 비교</div>
+          </div>
+
+          <!-- 상단 4개 지표 박스 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:14px;">
+            <div class="metric-box">
+              <div class="lbl">누적 가중낙찰률</div>
+              <div class="val green">91.6%</div>
+            </div>
+            <div class="metric-box">
+              <div class="lbl">누적 절감액 (절초감)</div>
+              <div class="val green">605.4억원</div>
+            </div>
+            <div class="metric-box">
+              <div class="lbl">2025년 낙찰률</div>
+              <div class="val green">84.9%</div>
+            </div>
+            <div class="metric-box">
+              <div class="lbl">낙찰률 개선폭</div>
+              <div class="val green">-12.7%p</div>
+            </div>
+          </div>
+
+          <!-- 5개년 낙찰률 차트 -->
+          <div id="c22-chart-box" style="margin-top:20px;flex:1;min-height:220px;"></div>
+        </div>
+
+        <!-- 우측: 품목별 자재계약 절감액 현황 -->
+        <div class="card miss flex-col" style="flex:1;">
+          <div class="head" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div class="title" style="font-size:16px;font-weight:800;">품목별 자재계약 절감액 현황</div>
+              <div class="sub" style="font-size:12px;color:var(--sub);margin-top:2px;">공급가액 1억원 이상 주요 자재계약 절감액 및 절감율 나열 (BD 백데이터 연동)</div>
+            </div>
+            <!-- 정렬 정렬 선택 버튼 2개 -->
+            <div style="display:flex;gap:6px;">
+              <button class="sort-btn ${bdSortMode==='sav'?'active':''}" id="bd-btn-sav" onclick="setBDSort('sav')"
+                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${bdSortMode==='sav'?'var(--amber)':'var(--border)'};background:${bdSortMode==='sav'?'var(--amber)':'transparent'};color:${bdSortMode==='sav'?'#000':'var(--text)'};">
+                절감액 기준 (디폴트)
+              </button>
+              <button class="sort-btn ${bdSortMode==='rate'?'active':''}" id="bd-btn-rate" onclick="setBDSort('rate')"
+                style="padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid ${bdSortMode==='rate'?'var(--amber)':'var(--border)'};background:${bdSortMode==='rate'?'var(--amber)':'transparent'};color:${bdSortMode==='rate'?'#000':'var(--text)'};">
+                절감율 기준
+              </button>
+            </div>
+          </div>
+
+          <!-- 계약 리스트 테이블 -->
+          <div id="bd-list-box" style="margin-top:14px;flex:1;overflow-y:auto;"></div>
+        </div>
+      </div>
+    `;
+
+    renderChart22();
+    renderBDList();
+  }
+
+  function renderChart22() {
+    const box = $('c22-chart-box');
+    if(!box) return;
+    lineChart(box, [
+      { data:[90,90,90,90,90], color:"#7e93ab", dash:"5,5" },
+      { data:[97.6,99.1,90.8,89.8,84.9], color:"#22c55e", dots:true, width:3, vlab:true, lab:["97.6%","99.1%","90.8%","89.8%","84.9%"] }
+    ], 105, ["2021년","2022년","2023년","2024년","2025년"]);
+  }
+
+  function setBDSort(mode) {
+    bdSortMode = mode;
+    const btnSav = $('bd-btn-sav');
+    const btnRate = $('bd-btn-rate');
+    if(btnSav && btnRate){
+      btnSav.style.border = mode==='sav'?'1px solid var(--amber)':'1px solid var(--border)';
+      btnSav.style.background = mode==='sav'?'var(--amber)':'transparent';
+      btnSav.style.color = mode==='sav'?'#000':'var(--text)';
+
+      btnRate.style.border = mode==='rate'?'1px solid var(--amber)':'1px solid var(--border)';
+      btnRate.style.background = mode==='rate'?'var(--amber)':'transparent';
+      btnRate.style.color = mode==='rate'?'#000':'var(--text)';
+    }
+    renderBDList();
+  }
+
+  function renderBDList() {
+    const box = $('bd-list-box');
+    if(!box) return;
+
+    let sorted = [...CONTRACT_BD].filter(c => c.budget >= 1.0);
+    if(bdSortMode === 'sav') {
+      sorted.sort((a,b) => b.sav - a.sav);
+    } else {
+      sorted.sort((a,b) => b.rate - a.rate);
+    }
+
+    let html = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
+        <thead>
+          <tr style="background:var(--bg2);border-bottom:1px solid var(--border);color:var(--sub);">
+            <th style="padding:8px 10px;">품목</th>
+            <th style="padding:8px 10px;">현장명</th>
+            <th style="padding:8px 10px;text-align:right;">예산금액</th>
+            <th style="padding:8px 10px;text-align:right;">품의금액</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--green);font-weight:800;">절감액</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--green);font-weight:800;">절감율</th>
+            <th style="padding:8px 10px;">계약 업체명</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.map(c => `
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);transition:background .12s;">
+              <td style="padding:10px;font-weight:700;color:var(--text);">${c.cat}</td>
+              <td style="padding:10px;color:var(--sub);">${c.site}</td>
+              <td style="padding:10px;text-align:right;">${c.budget.toFixed(1)}억</td>
+              <td style="padding:10px;text-align:right;">${c.bid.toFixed(1)}억</td>
+              <td style="padding:10px;text-align:right;font-weight:800;color:var(--green);">${c.sav.toFixed(1)}억</td>
+              <td style="padding:10px;text-align:right;font-weight:800;color:var(--green);">${c.rate.toFixed(1)}%</td>
+              <td style="padding:10px;color:var(--sub);">${c.vendor}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="font-size:11px;color:var(--sub);margin-top:10px;">* 공급가액 1.0억원 이상 자재 및 하도급 외주계약 대상 (BD 시트 백데이터 기준)</div>
+    `;
+    box.innerHTML = html;
+  }
+
   function selectGScreen(mountId, D, sid){
     document.querySelectorAll(`#${mountId}-subtabs .sub-tab`).forEach(el=>el.classList.toggle('active', el.id===`${mountId}-tab-${sid}`));
     const cards = D.화면[sid]||[];
@@ -2245,6 +2556,8 @@ const UNYEONG = {
     content.innerHTML = `<div class="panel-grid">`+cards.map((c,i)=>cardHtml(c,cids[i])).join('')+`</div>`;
     // 차트 렌더
     cards.forEach((c,i)=>{
+      if(c.type==='custom_21'){ renderCustom21($(mountId+'-content')); return; }
+      if(c.type==='custom_22'){ renderCustom22($(mountId+'-content')); return; }
       if(c.type==='sim'){ renderSim(c, cids[i]); return; }
       if(!c.chart) return;
       const el=$(cids[i]); if(!el) return;
