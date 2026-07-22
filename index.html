@@ -2488,7 +2488,7 @@ const UNYEONG = {
 
           <div class="tracker-box">
             <div class="tracker-title">주요 자재/하도급 입찰계약 절감 현황 (공급가 1.0억원 이상)</div>
-            <div id="bd-list-box"></div>
+            <div id="bd-list-box">${getBDListHtml()}</div>
           </div>
           <div class="note">* 공급가액 1.0억원 이상 자재 및 하도급 외주계약 대상 (BD 시트 백데이터 기준)</div>
         </div>
@@ -2519,10 +2519,7 @@ const UNYEONG = {
     renderBDList();
   }
 
-  function renderBDList() {
-    const box = $('bd-list-box');
-    if(!box) return;
-
+  function getBDListHtml() {
     let sorted = [...CONTRACT_BD].filter(c => c.budget >= 1.0);
     if(bdSortMode === 'sav') {
       sorted.sort((a,b) => b.sav - a.sav);
@@ -2530,134 +2527,35 @@ const UNYEONG = {
       sorted.sort((a,b) => b.rate - a.rate);
     }
 
-    let html = `
-      <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">
-        <thead>
-          <tr style="background:var(--bg);border-bottom:1px solid var(--border);color:var(--sub);">
-            <th style="padding:8px 10px;">품목</th>
-            <th style="padding:8px 10px;">공사현장</th>
-            <th style="padding:8px 10px;text-align:right;">예산금액</th>
-            <th style="padding:8px 10px;text-align:right;">품의금액</th>
-            <th style="padding:8px 10px;text-align:right;color:var(--actual);font-weight:800;">절감액</th>
-            <th style="padding:8px 10px;text-align:right;color:var(--actual);font-weight:800;">절감율</th>
-            <th style="padding:8px 10px;">계약 업체명</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sorted.map(c => `
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-              <td style="padding:10px;font-weight:700;color:var(--text);">${c.cat}</td>
-              <td style="padding:10px;color:var(--sub);">${c.site}</td>
-              <td style="padding:10px;text-align:right;">${c.budget.toFixed(1)}억</td>
-              <td style="padding:10px;text-align:right;">${c.bid.toFixed(1)}억</td>
-              <td style="padding:10px;text-align:right;font-weight:800;color:var(--actual);">${c.sav.toFixed(1)}억</td>
-              <td style="padding:10px;text-align:right;font-weight:800;color:var(--actual);">${c.rate.toFixed(1)}%</td>
-              <td style="padding:10px;color:var(--sub);">${c.vendor}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    box.innerHTML = html;
+    return '<table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">' +
+      '<thead><tr style="background:var(--bg);border-bottom:1px solid var(--border);color:var(--sub);">' +
+      '<th style="padding:8px 10px;">품목</th>' +
+      '<th style="padding:8px 10px;">공사현장</th>' +
+      '<th style="padding:8px 10px;text-align:right;">예산금액</th>' +
+      '<th style="padding:8px 10px;text-align:right;">품의금액</th>' +
+      '<th style="padding:8px 10px;text-align:right;color:var(--actual);font-weight:800;">절감액</th>' +
+      '<th style="padding:8px 10px;text-align:right;color:var(--actual);font-weight:800;">절감율</th>' +
+      '<th style="padding:8px 10px;">계약 업체명</th>' +
+      '</tr></thead><tbody>' +
+      sorted.map(c =>
+        '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">' +
+        '<td style="padding:10px;font-weight:700;color:var(--text);">' + c.cat + '</td>' +
+        '<td style="padding:10px;color:var(--sub);">' + c.site + '</td>' +
+        '<td style="padding:10px;text-align:right;">' + c.budget.toFixed(1) + '억</td>' +
+        '<td style="padding:10px;text-align:right;">' + c.bid.toFixed(1) + '억</td>' +
+        '<td style="padding:10px;text-align:right;font-weight:800;color:var(--actual);">' + c.sav.toFixed(1) + '억</td>' +
+        '<td style="padding:10px;text-align:right;font-weight:800;color:var(--actual);">' + c.rate.toFixed(1) + '%</td>' +
+        '<td style="padding:10px;color:var(--sub);">' + c.vendor + '</td>' +
+        '</tr>'
+      ).join('') +
+      '</tbody></table>';
   }
 
-  function selectGScreen(mountId, D, sid){
-    document.querySelectorAll(`#${mountId}-subtabs .sub-tab`).forEach(el=>el.classList.toggle('active', el.id===`${mountId}-tab-${sid}`));
-    const cards = D.화면[sid]||[];
-    const content = $(`${mountId}-content`);
-    const cids = cards.map((_,i)=>`${mountId}-${sid}-c${i}`);
-    content.innerHTML = `<div class="panel-grid">`+cards.map((c,i)=>cardHtml(c,cids[i])).join('')+`</div>`;
-    // 차트 렌더
-    cards.forEach((c,i)=>{
-      if(c.type==='metrics_c21'){ drawChart21(cids[i]); return; }
-      if(c.type==='bd_table'){ renderBDList(); return; }
-      if(c.type==='sim'){ renderSim(c, cids[i]); return; }
-      if(!c.chart) return;
-      const el=$(cids[i]); if(!el) return;
-      if(c.chart.kind==='line') lineChart(el, c.chart.series, c.chart.maxY, c.chart.labels);
-      else if(c.chart.kind==='bar') barChart(el, c.chart.data, c.chart.labels, c.chart.color);
-    });
+  function renderBDList() {
+    const box = $('bd-list-box');
+    if(box) box.innerHTML = getBDListHtml();
   }
 
-
-  /* ── 미분양 손실 시뮬레이터 (현장별 표) ── */
-  function renderSim(card, cid){
-    const 현장 = card.현장;
-    const fmt = v => Math.round(v).toLocaleString();
-    function calc(rate){
-      return 현장.map(s=>{
-        const 미분양 = s.도급 * (1 - s.분양률/100);
-        const 손실 = 미분양 * rate/100;
-        return { 이름:s.이름, 도급:s.도급, 분양률:s.분양률, 미분양, 손실 };
-      });
-    }
-    function draw(rate){
-      const rows = calc(rate);
-      const 총미분양 = rows.reduce((a,r)=>a+r.미분양,0);
-      const 총손실 = rows.reduce((a,r)=>a+r.손실,0);
-      const 총도급 = rows.reduce((a,r)=>a+r.도급,0);
-      $(`${cid}-unsold`).textContent = fmt(총미분양)+'억';
-      $(`${cid}-loss`).textContent = fmt(총손실)+'억';
-      $(`${cid}-rate`).textContent = rate+'%';
-      $(`${cid}-msg`).innerHTML = (card.총평문구||'').replace('{할인}', rate).replace('{손실}', fmt(총손실));
-      card.할인율.forEach(r=> { const b=$(`${cid}-b-${r}`); if(b) b.classList.toggle('active', r===rate); });
-      // 표 렌더 (손실 큰 순 정렬) + 손실 열 가로 막대
-      const sorted = [...rows].sort((a,b)=>b.손실-a.손실);
-      const maxLoss = Math.max(...sorted.map(r=>r.손실), 1);
-      let html = `<thead><tr>
-        <th>현장</th><th>도급액</th><th>분양률</th><th>미분양 규모</th>
-        <th style="min-width:200px;">할인손실 <span class="sim-rate-badge">${rate}%</span></th></tr></thead><tbody>`;
-      sorted.forEach(r=>{
-        const pct = Math.round(r.손실/maxLoss*100);
-        html += `<tr><td>${r.이름}</td><td>${fmt(r.도급)}억</td><td>${r.분양률}%</td>
-          <td>${fmt(r.미분양)}억</td>
-          <td class="loss-bar-cell"><div class="loss-bar-wrap">
-            <div class="loss-bar-track"><div class="loss-bar-fill" style="width:${pct}%;"></div></div>
-            <div class="loss-bar-val">${fmt(r.손실)}억</div>
-          </div></td></tr>`;
-      });
-      html += `<tr class="sum-row"><td>전사 합계</td><td>${fmt(총도급)}억</td><td>—</td>
-        <td>${fmt(총미분양)}억</td>
-        <td class="loss-bar-cell"><div class="loss-bar-wrap">
-          <div class="loss-bar-track"><div class="loss-bar-fill" style="width:100%;"></div></div>
-          <div class="loss-bar-val">${fmt(총손실)}억</div>
-        </div></td></tr>`;
-      html += `</tbody>`;
-      $(`${cid}-table`).innerHTML = html;
-    }
-    $(`${cid}-btns`).innerHTML = '<span class="scn-lbl">할인율 시나리오 (전 현장 일괄 적용)</span>' +
-      card.할인율.map(r=>`<div class="scn-btn" id="${cid}-b-${r}" onclick="window['${cid}_set'](${r})">${r}%</div>`).join('');
-    window[`${cid}_set`] = draw;
-    draw(card.현재할인율 || card.할인율[0]);
-  }
-
-  /* ── iframe(수주) 높이 자동조절 ── */
-  function fitIframe(){
-    const f = $('iframe-수주');
-    if(!f) return;
-    try {
-      const doc = f.contentWindow ? f.contentWindow.document : f.contentDocument;
-      if(doc && doc.body){
-        const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
-        if(h>200){ f.style.height = h + 'px'; }
-      }
-    } catch(e){ /* 크로스오리진 등 실패 시 기본 높이 유지 */ }
-  }
-  (function(){
-    const f = $('iframe-수주');
-    if(f){
-      f.addEventListener('load', ()=>{ fitIframe(); setTimeout(fitIframe,300); setTimeout(fitIframe,800); });
-    }
-    window.addEventListener('resize', fitIframe);
-  })();
-
-  /* ── 초기화 ── */
-  buildMainTabs();
-  renderGeneric('mount-2', GONGJEONG);
-  renderGeneric('mount-3', JAGEUM);
-  renderGeneric('mount-4', IIK);
-  renderGeneric('mount-5', UNYEONG);
-  selectMain(1);   // 첫 화면은 수주
-</script>
+  </script>
 </body>
 </html>
