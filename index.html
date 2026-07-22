@@ -1766,7 +1766,7 @@ const IIK = {
         boxes:[
           {lbl:"2020년 대비 누적 상승률", val:"+62.5%", cls:"danger"},
           {lbl:"전년 대비 상승률", val:"+7.2%", cls:"warn"},
-          {lbl:"손익 영향액 추정", val:"176억원", cls:"warn"},
+          {lbl:"손익 영향액 (추정)", val:"176억원", cls:"warn"},
         ],
         note:"* 자재별 각자 2020년 계약단가를 100.0 인덱스로 환산하여 물가 인상분 추적 관리 (Main: 외주구매)",
       },
@@ -2366,13 +2366,13 @@ const UNYEONG = {
 
     // Draw active lines & markers
     activeList.forEach(m => {
-      let pts = [];
+      let d = '';
       m.line.forEach((v, i) => {
         const x = padL + i * xStep;
         const y = getY(v);
-        pts.push(`${x},${y}`);
+        d += (d ? ' L' : 'M') + ` ${x} ${y}`;
       });
-      svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${m.color}" stroke-width="${m.id==='total'?3.5:2.5}" stroke-dasharray="${m.dash}" />`;
+      svg += `<path d="${d}" fill="none" stroke="${m.color}" stroke-width="${m.id==='total'?3.5:2.5}" stroke-dasharray="${m.dash||''}" stroke-linecap="round" stroke-linejoin="round" />`;
 
       m.line.forEach((v, i) => {
         const x = padL + i * xStep;
