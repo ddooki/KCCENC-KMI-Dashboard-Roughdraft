@@ -1768,7 +1768,7 @@ const IIK = {
           {lbl:"전년 대비 상승률", val:"+7.2%", cls:"warn"},
           {lbl:"손익 영향액 (추정)", val:"176억원", cls:"warn"},
         ],
-        note:"* 자재별 각자 2020년 계약단가를 100.0 인덱스로 환산하여 물가 인상분 추적 관리 (Main: 외주구매)",
+        note:"* 자재별 각자 2020년 계약단가를 100.0 인덱스로 환산하여 물가 인상분 추적 관리",
       },
       { type:"list", accent:"miss", title:"현장별 단가계약 변동시점 손익 영향 현황", sub:"자재별 단가계약 인상 시점(2020~2026년 백데이터) 및 진행 현장 손실 영향 추정", badge:{lv:"danger",txt:"변동시점 추적"},
         listTitle:"단가계약 인상 시점 및 진행 현장 손익 영향 백데이터",
@@ -2292,10 +2292,10 @@ const UNYEONG = {
       { id:"total", name:"종합 인덱스", shape:"●", color:"#ff4d4d", dash:"", line:[100,118.5,138.2,146.4,152.0,156.8,162.5], cum:"+62.5%", yr:"+7.2%", defaultOn:true },
       { id:"cable", name:"케이블", shape:"▲", color:"#ffaa00", dash:"5,5", line:[100,133.6,181.5,176.2,203.6,238.7,315.1], cum:"+215.1%", yr:"+32.0%", defaultOn:true },
       { id:"cement", name:"시멘트", shape:"■", color:"#38bdf8", dash:"5,5", line:[100,122.0,137.3,161.0,161.0,161.0,176.3], cum:"+76.3%", yr:"+9.5%", defaultOn:true },
-      { id:"remital", name:"레미탈", shape:"◆", color:"#4ade80", dash:"3,3", line:[100,103.6,130.4,160.7,160.7,162.5,153.6], cum:"+53.6%", yr:"-5.5%", defaultOn:false },
-      { id:"gypsum", name:"석고보드", shape:"★", color:"#c084fc", dash:"3,3", line:[100,100.0,132.8,141.3,141.3,141.3,148.9], cum:"+48.9%", yr:"+5.4%", defaultOn:false },
-      { id:"pipe", name:"강관류", shape:"⬡", color:"#facc15", dash:"3,3", line:[100,109.0,158.6,142.8,121.4,115.3,99.1], cum:"-0.9%", yr:"+7.8%", defaultOn:false },
-      { id:"conduit", name:"강제전선관", shape:"+", color:"#22d3ee", dash:"3,3", line:[100,109.0,158.7,142.9,131.4,115.4,121.0], cum:"+21.0%", yr:"+4.8%", defaultOn:false },
+      { id:"remital", name:"레미탈", shape:"◆", color:"#4ade80", dash:"3,3", line:[100,103.6,130.4,160.7,160.7,162.5,153.6], cum:"+53.6%", yr:"-5.5%", defaultOn:true },
+      { id:"gypsum", name:"석고보드", shape:"★", color:"#c084fc", dash:"3,3", line:[100,100.0,132.8,141.3,141.3,141.3,148.9], cum:"+48.9%", yr:"+5.4%", defaultOn:true },
+      { id:"pipe", name:"강관류", shape:"⬡", color:"#facc15", dash:"3,3", line:[100,109.0,158.6,142.8,121.4,115.3,99.1], cum:"-0.9%", yr:"+7.8%", defaultOn:true },
+      { id:"conduit", name:"강제전선관", shape:"+", color:"#22d3ee", dash:"3,3", line:[100,109.0,158.7,142.9,131.4,115.4,121.0], cum:"+21.0%", yr:"+4.8%", defaultOn:true },
     ]
   };
 
@@ -2303,6 +2303,7 @@ const UNYEONG = {
   MAT_DATA.items.forEach(m => { activeMats[m.id] = m.defaultOn; });
 
   let lastC21Cid = null;
+  let currMaxVal21 = 330;
 
   function toggleMat(id) {
     activeMats[id] = !activeMats[id];
@@ -2338,7 +2339,22 @@ const UNYEONG = {
     const chartH = h - padT - padB;
 
     const activeList = MAT_DATA.items.filter(m => activeMats[m.id]);
-    const maxVal = 330;
+    let targetMax = 180;
+
+    if(activeList.length > 0) {
+      let maxDataVal = 0;
+      activeList.forEach(m => {
+        const itemMax = Math.max(...m.line);
+        if(itemMax > maxDataVal) maxDataVal = itemMax;
+      });
+      if(maxDataVal > 190) {
+        targetMax = 330;
+      } else {
+        targetMax = 190;
+      }
+    }
+
+    const maxVal = targetMax;
     const minVal = 80;
 
     const xStep = chartW / (MAT_DATA.labels.length - 1);
@@ -2346,11 +2362,11 @@ const UNYEONG = {
 
     let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="overflow:visible;">`;
 
-    // Grid lines
-    [100, 150, 200, 250, 300].forEach(v => {
+    const gridSteps = maxVal > 200 ? [100, 150, 200, 250, 300] : [100, 120, 140, 160, 180];
+    gridSteps.forEach(v => {
       const y = getY(v);
-      svg += `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="3,3" />`;
-      svg += `<text x="${padL-8}" y="${y+4}" fill="var(--sub)" font-size="10" text-anchor="end">${v}</text>`;
+      svg += `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="3,3" style="transition: all 0.4s ease-in-out;" />`;
+      svg += `<text x="${padL-8}" y="${y+4}" fill="var(--sub)" font-size="10" text-anchor="end" style="transition: all 0.4s ease-in-out;">${v}</text>`;
     });
 
     // X Labels
@@ -2367,25 +2383,25 @@ const UNYEONG = {
         const y = getY(v);
         d += (d ? ' L' : 'M') + ` ${x} ${y}`;
       });
-      svg += `<path d="${d}" fill="none" stroke="${m.color}" stroke-width="${m.id==='total'?3.5:2.5}" stroke-dasharray="${m.dash||''}" stroke-linecap="round" stroke-linejoin="round" />`;
+      svg += `<path d="${d}" fill="none" stroke="${m.color}" stroke-width="${m.id==='total'?3.5:2.5}" stroke-dasharray="${m.dash||''}" stroke-linecap="round" stroke-linejoin="round" style="transition: all 0.4s ease-in-out;" />`;
 
       m.line.forEach((v, i) => {
         const x = padL + i * xStep;
         const y = getY(v);
         if(m.shape === '●') {
-          svg += `<circle cx="${x}" cy="${y}" r="${m.id==='total'?5:4}" fill="${m.color}" stroke="var(--card)" stroke-width="1.5" />`;
+          svg += `<circle cx="${x}" cy="${y}" r="${m.id==='total'?5:4}" fill="${m.color}" stroke="var(--card)" stroke-width="1.5" style="transition: all 0.4s ease-in-out;" />`;
         } else if(m.shape === '▲') {
-          svg += `<polygon points="${x},${y-5} ${x-4},${y+4} ${x+4},${y+4}" fill="${m.color}" />`;
+          svg += `<polygon points="${x},${y-5} ${x-4},${y+4} ${x+4},${y+4}" fill="${m.color}" style="transition: all 0.4s ease-in-out;" />`;
         } else if(m.shape === '■') {
-          svg += `<rect x="${x-4}" y="${y-4}" width="8" height="8" fill="${m.color}" />`;
+          svg += `<rect x="${x-4}" y="${y-4}" width="8" height="8" fill="${m.color}" style="transition: all 0.4s ease-in-out;" />`;
         } else if(m.shape === '◆') {
-          svg += `<polygon points="${x},${y-5} ${x+4},${y} ${x},${y+5} ${x-4},${y}" fill="${m.color}" />`;
+          svg += `<polygon points="${x},${y-5} ${x+4},${y} ${x},${y+5} ${x-4},${y}" fill="${m.color}" style="transition: all 0.4s ease-in-out;" />`;
         } else if(m.shape === '★') {
-          svg += `<text x="${x}" y="${y+4}" fill="${m.color}" font-size="12" text-anchor="middle">★</text>`;
+          svg += `<text x="${x}" y="${y+4}" fill="${m.color}" font-size="12" text-anchor="middle" style="transition: all 0.4s ease-in-out;">★</text>`;
         } else if(m.shape === '⬡') {
-          svg += `<circle cx="${x}" cy="${y}" r="4" fill="none" stroke="${m.color}" stroke-width="2" />`;
+          svg += `<circle cx="${x}" cy="${y}" r="4" fill="none" stroke="${m.color}" stroke-width="2" style="transition: all 0.4s ease-in-out;" />`;
         } else {
-          svg += `<text x="${x}" y="${y+4}" fill="${m.color}" font-size="13" font-weight="900" text-anchor="middle">+</text>`;
+          svg += `<text x="${x}" y="${y+4}" fill="${m.color}" font-size="13" font-weight="900" text-anchor="middle" style="transition: all 0.4s ease-in-out;">+</text>`;
         }
       });
     });
