@@ -1793,9 +1793,9 @@ const IIK = {
           {lbl:"누적 가중낙찰률", val:"91.6%", cls:"ok"},
           {lbl:"누적 절감액 (절초감)", val:"605.4억원", cls:"ok"},
           {lbl:"2025년 낙찰률", val:"84.9%", cls:"ok"},
-          {lbl:"낙찰률 개선폭", val:"-12.7%p", cls:"ok"},
+          {lbl:"낙찰률 개선폭 (2021년 대비)", val:"-12.7%p", cls:"ok"},
         ],
-        chart:{kind:"line", maxY:105, labels:["2021년","2022년","2023년","2024년","2025년"],
+        chart:{kind:"line", minY:75, maxY:102, labels:["2021년","2022년","2023년","2024년","2025년"],
           series:[
             {data:[90,90,90,90,90], color:"#7e93ab", dash:"5,5"},
             {data:[97.6,99.1,90.8,89.8,84.9], color:"#22c55e", dots:true, width:3, vlab:true, lab:["97.6%","99.1%","90.8%","89.8%","84.9%"]},
@@ -2128,9 +2128,11 @@ const UNYEONG = {
   }
 
   /* ══════════ 차트 엔진 ══════════ */
-  function lineChart(el, series, maxY, labels) {
+  function lineChart(el, series, maxY, labels, cardChart) {
+    const minY = (cardChart && cardChart.minY !== undefined) ? cardChart.minY : 0;
+    const rangeY = (maxY - minY) || 1;
     const w=600, h=215, padX=30, padY=22, dw=w-padX*2, dh=h-padY*2, n=labels.length;
-    const xs=i=>padX+i*(dw/(n-1)), ys=v=>padY+dh-(v/maxY)*dh;
+    const xs=i=>padX+i*(dw/(n-1)), ys=v=>padY+dh-((v-minY)/rangeY)*dh;
     let grid='', lbl='';
     labels.forEach((m,i)=>{
       grid+=`<line x1="${xs(i)}" y1="${padY}" x2="${xs(i)}" y2="${padY+dh}" stroke="#16322f" stroke-width="1"/>`;
@@ -2442,7 +2444,7 @@ const UNYEONG = {
     { cat:"경질우레탄폼보드", site:"울진 500kV 동해안", budget:1.1, bid:1.1, sav:0.0, rate:0.0, vendor:"(주)에코인슈텍" },
     { cat:"분전반", site:"화성 데이터센터 2차", budget:14.3, bid:13.9, sav:0.4, rate:3.0, vendor:"(주)플릿스인더스트리" },
     { cat:"경질우레탄폼보드", site:"수서 역세권 3블록", budget:4.2, bid:3.7, sav:0.4, rate:10.6, vendor:"(주)경동원" },
-    { cat:"폼쿨", site:"오퍼스 한강 스위첸", budget:7.2, bid:8.2, sav:-1.1, rate:-14.9, vendor:"삼목에스폼(주)" },
+    { cat:"갱폼", site:"오퍼스 한강 스위첸", budget:7.2, bid:8.2, sav:-1.1, rate:-14.9, vendor:"삼목에스폼(주)" },
     { cat:"탱크류", site:"수서 역세권 3블록", budget:1.2, bid:1.1, sav:0.1, rate:6.6, vendor:"(주)수엔텍이앤씨" },
     { cat:"위생기구류", site:"다이소 세종 허브센터", budget:1.0, bid:1.0, sav:0.0, rate:2.7, vendor:"(주)하나도기타일" },
     { cat:"공조기", site:"KCC실리콘 전주공장", budget:2.0, bid:1.8, sav:0.3, rate:13.0, vendor:"한국공조엔지니어링(주)" },
@@ -2557,7 +2559,7 @@ const UNYEONG = {
       if(c.type==='sim'){ renderSim(c, cids[i]); return; }
       if(!c.chart) return;
       const el=$(cids[i]); if(!el) return;
-      if(c.chart.kind==='line') lineChart(el, c.chart.series, c.chart.maxY, c.chart.labels);
+      if(c.chart.kind==='line') lineChart(el, c.chart.series, c.chart.maxY, c.chart.labels, c.chart);
       else if(c.chart.kind==='bar') barChart(el, c.chart.data, c.chart.labels, c.chart.color);
     });
   }
