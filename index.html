@@ -2215,7 +2215,7 @@ const UNYEONG = {
             </button>
           `).join('')}
         </div>
-        <div class="svg-canvas" id="${cid}" style="min-height:280px;width:100%;"></div>
+        <div class="svg-canvas" id="${cid}" style="min-height:280px;width:100%;">${getChart21SvgHtml()}</div>
       </div>`;
     }
 
@@ -2337,15 +2337,7 @@ const UNYEONG = {
     drawChart21(lastC21Cid);
   }
 
-  function drawChart21(cid) {
-    if(cid) lastC21Cid = cid;
-    const targetId = cid || lastC21Cid || 'c21-svg-box';
-    let box = $(targetId);
-    if(!box) box = $('c21-svg-box');
-    if(!box) return;
-
-    const w = box.clientWidth || 580;
-    const h = 280;
+  function getChart21SvgHtml(w=580, h=280) {
     const padL = 35, padR = 25, padT = 20, padB = 25;
     const chartW = w - padL - padR;
     const chartH = h - padT - padB;
@@ -2357,7 +2349,7 @@ const UNYEONG = {
     const xStep = chartW / (MAT_DATA.labels.length - 1);
     const getY = (val) => padT + chartH - ((val - minVal) / (maxVal - minVal)) * chartH;
 
-    let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible;">`;
+    let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="overflow:visible;">`;
 
     // Grid lines
     [100, 150, 200, 250, 300].forEach(v => {
@@ -2380,7 +2372,7 @@ const UNYEONG = {
         const y = getY(v);
         pts.push(`${x},${y}`);
       });
-      svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${m.color}" stroke-width="${m.id==='total'?3.5:2}" stroke-dasharray="${m.dash}" />`;
+      svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${m.color}" stroke-width="${m.id==='total'?3.5:2.5}" stroke-dasharray="${m.dash}" />`;
 
       m.line.forEach((v, i) => {
         const x = padL + i * xStep;
@@ -2404,10 +2396,20 @@ const UNYEONG = {
     });
 
     svg += `</svg>`;
-    box.innerHTML = svg;
+    return svg;
   }
 
-  /* ══════════ 2.2 품목별 자재계약 절감액 10종 백데이터 ══════════ */
+  function drawChart21(cid) {
+    if(cid) lastC21Cid = cid;
+    const targetId = cid || lastC21Cid || 'c21-svg-box';
+    let box = $(targetId);
+    if(!box) box = $('c21-svg-box');
+    if(!box) return;
+
+    const w = box.clientWidth || 580;
+    box.innerHTML = getChart21SvgHtml(w, 280);
+  }
+
   const CONTRACT_BD = [
     { cat:"공조기류", site:"평택 사무3동 신축", budget:415.3, bid:363.7, sav:51.6, rate:12.4, vendor:"(주)신성이엔지 외" },
     { cat:"거푸집 공사", site:"아산 벨코어 스위첸", budget:259.7, bid:226.9, sav:32.8, rate:12.6, vendor:"(주)삼우폼텍 외" },
