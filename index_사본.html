@@ -1,0 +1,2693 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>선행지표 기반 경영 시스템 — 통합 대시보드</title>
+<style>
+  :root {
+    --bg:#0a1f1e; --card:#16322f; --deep:#0d1f1d; --text:#eef5ff; --sub:#8fa4bd; --border:#27453f;
+    --plan:#7e93ab; --actual:#8cb269; --miss:#ff6969; --amber:#ffad42;
+  }
+  * { box-sizing:border-box; }
+  body { font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; background:var(--bg); color:var(--text); margin:0; min-height:100vh; overflow-x:hidden; }
+
+  /* ── 최상단 허브 헤더 ── */
+  .hub-header { background:linear-gradient(180deg,#0d2523,#0a1f1e); padding:22px 40px 0; border-bottom:1px solid var(--border); }
+  .hub-title { font-size:24px; font-weight:800; color:var(--amber); letter-spacing:-0.5px; }
+  .hub-title span { color:var(--sub); font-size:14px; font-weight:500; margin-left:12px; }
+  /* 5개 대분류 최상위 탭 */
+  .maintabs { display:flex; gap:12px; margin-top:20px; }
+  .maintab { flex:1; text-align:center; padding:16px 10px 18px; border-radius:12px 12px 0 0; background:var(--card); border:1px solid var(--border); border-bottom:none; cursor:pointer; transition:all .16s; position:relative; }
+  .maintab:hover { background:#1b3a37; }
+  .maintab.active { background:var(--amber); }
+  .maintab.active .mt-no, .maintab.active .mt-name { color:#1d1508; }
+  .mt-no { font-size:12px; color:var(--sub); font-weight:700; letter-spacing:1px; }
+  .mt-name { font-size:19px; font-weight:800; margin-top:3px; color:var(--text); }
+  .mt-dot { position:absolute; top:12px; right:14px; width:9px; height:9px; border-radius:50%; }
+  .dot-ok{background:var(--actual);} .dot-warn{background:var(--amber);} .dot-danger{background:var(--miss); animation:blink 1.6s infinite;}
+  @keyframes blink { 50%{opacity:.4;} }
+
+  /* ── 대시보드 프레임 영역 ── */
+  .stage { min-height:calc(100vh - 130px); }
+  iframe.dash { width:100%; height:calc(100vh - 118px); border:none; display:block; }
+
+  /* ── 범용 렌더 대시보드 (공정 등) ── */
+  .dv { display:none; }
+  .dv.on { display:block; animation:fade .25s; }
+  @keyframes fade { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:none;} }
+  .sub-head { display:flex; justify-content:space-between; align-items:center; padding:16px 36px 0; }
+  .sub-h-title { font-size:15px; color:var(--sub); font-weight:600; }
+  .sub-tabs { display:flex; gap:10px; padding:14px 36px 0; }
+  .sub-tab { padding:11px 26px; border-radius:9px; background:var(--deep); border:1px solid var(--border); font-size:15px; font-weight:700; color:var(--sub); cursor:pointer; transition:all .15s; }
+  .sub-tab:hover { color:var(--text); border-color:var(--sub); }
+  .sub-tab.active { background:var(--amber); color:#1d1508; border-color:var(--amber); }
+  .content { padding:20px 36px 40px; }
+  .screen { display:none; }
+  .screen.on { display:block; animation:fade .25s; }
+  .panel-grid { display:flex; flex-wrap:wrap; gap:22px; align-items:stretch; }
+  .panel { flex:1 1 46%; min-width:430px; background:var(--card); border-radius:16px; padding:24px; border:1px solid var(--border); box-shadow:0 10px 25px rgba(0,0,0,0.3); display:flex; flex-direction:column; }
+.card { flex:1 1 46%; min-width:430px; background:var(--card); border-radius:16px; padding:24px; border:1px solid var(--border); box-shadow:0 10px 25px rgba(0,0,0,0.3); display:flex; flex-direction:column; position:relative; overflow:hidden; }
+  .card.miss { border:1.5px solid rgba(255,105,105,0.7); box-shadow:0 6px 22px rgba(255,105,105,0.18); }
+  .card.miss::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:var(--miss); }
+  .card.amber { border:1.5px solid rgba(255,173,66,0.65); box-shadow:0 6px 22px rgba(255,173,66,0.18); }
+  .card.amber::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:var(--amber); }
+  .card.ok { border:1.5px solid rgba(140,178,105,0.65); box-shadow:0 6px 22px rgba(140,178,105,0.18); }
+  .card.ok::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:var(--actual); }
+  .panel-head { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:16px; }
+  .p-title { font-size:21px; font-weight:800; }
+  .p-sub { color:var(--sub); font-size:13px; margin-top:5px; }
+  .badge { padding:7px 14px; border-radius:8px; font-weight:800; font-size:14px; white-space:nowrap; }
+  .st-ok{background:rgba(140,178,105,0.15);color:#a8d480;border:1px solid var(--actual);}
+  .st-warn{background:rgba(255,173,66,0.13);color:#ffd08f;border:1px solid var(--amber);}
+  .st-danger{background:rgba(255,105,105,0.15);color:#ffb3ad;border:1px solid var(--miss);animation:blink 1.6s infinite;}
+  .num-dashboard { display:grid; grid-template-columns:repeat(4,1fr); gap:11px; margin-bottom:14px; }
+  .num-box { background:var(--bg); border:1px solid var(--border); padding:14px 6px; border-radius:10px; text-align:center; }
+  .num-lbl { font-size:12px; color:var(--sub); font-weight:700; margin-bottom:6px; word-break:keep-all; }
+  .num-val { font-size:20px; font-weight:800; }
+  .num-box.ok{border-color:rgba(140,178,105,0.5);background:rgba(140,178,105,0.05);} .num-box.ok .num-val{color:#a8d480;}
+  .num-box.warn{border-color:rgba(255,173,66,0.55);background:rgba(255,173,66,0.05);} .num-box.warn .num-val{color:#ffd08f;}
+  .num-box.danger{border-color:rgba(255,105,105,0.7);background:rgba(255,105,105,0.08);} .num-box.danger .num-val{color:#ff8f7a;}
+  .warning-msg { padding:13px 17px; border-radius:8px; font-size:14px; margin-bottom:14px; line-height:1.55; font-weight:600; }
+  .warning-msg.safe{background:rgba(140,178,105,0.1);border:1px solid var(--actual);color:#c9e0a8;}
+  .warning-msg.warn{background:rgba(255,173,66,0.09);border:1px solid var(--amber);color:#ffd9a3;}
+  .warning-msg.danger{background:rgba(255,105,105,0.13);border:2px solid var(--miss);color:#ffb3ad;}
+  .chart-container { flex-grow:1; min-height:240px; background:var(--deep); border-radius:12px; padding:16px; border:1px solid var(--border); }
+  .custom-legend { display:flex; justify-content:center; gap:18px; margin-bottom:10px; font-size:12.5px; font-weight:bold; flex-wrap:wrap; }
+  .svg-canvas { width:100%; height:calc(100% - 26px); min-height:190px; }
+  .tracker-box { background:var(--deep); border-radius:10px; padding:16px; border:1px solid var(--border); margin-bottom:14px; }
+  .tracker-title { font-size:13.5px; color:var(--sub); margin-bottom:12px; font-weight:700; }
+  .task-list { display:flex; flex-direction:column; gap:9px; }
+  .task-item { display:flex; align-items:center; gap:12px; font-size:14px; background:var(--card); padding:11px 16px; border-radius:8px; border-left:4px solid var(--sub); font-weight:500; justify-content:space-between; flex-wrap:wrap; }
+  .task-item .left { display:flex; align-items:center; gap:10px; }
+  .task-item.done{border-left-color:var(--actual);} .task-item.warn{border-left-color:var(--amber);background:rgba(255,173,66,0.06);} .task-item.fail{border-left-color:var(--miss);background:rgba(255,105,105,0.1);}
+  .icon-done{color:var(--actual);font-weight:bold;} .icon-warn{color:var(--amber);font-weight:bold;} .icon-fail{color:var(--miss);font-weight:bold;font-size:17px;}
+  .amt{font-weight:800;font-size:14px;} .amt.red{color:#ff8f7a;} .amt.green{color:#a8d480;} .amt.amber{color:#ffd08f;}
+  .note { font-size:11.5px; color:var(--sub); margin-top:14px; text-align:right; font-style:italic; }
+  /* 할인율 시나리오 버튼 */
+  .scn-row { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .scn-lbl { font-size:13px; color:var(--sub); font-weight:700; margin-right:4px; width:100%; margin-bottom:2px; }
+  .scn-btn { padding:10px 22px; border-radius:10px; background:var(--deep); border:1.5px solid var(--border); font-size:15px; font-weight:800; color:var(--sub); cursor:pointer; transition:all .14s; }
+  .scn-btn:hover { color:var(--text); border-color:var(--amber); transform:translateY(-1px); }
+  .scn-btn.active { background:var(--amber); color:#1d1508; border-color:var(--amber); box-shadow:0 4px 12px rgba(255,173,66,0.3); }
+  /* 미분양 시뮬레이터 표 */
+  .sim-table { width:100%; border-collapse:collapse; margin-top:4px; font-size:13.5px; }
+  .sim-table th { background:var(--deep); color:var(--sub); font-weight:700; padding:10px 12px; text-align:right; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .sim-table th:first-child { text-align:left; }
+  .sim-table td { padding:11px 12px; text-align:right; border-bottom:1px solid var(--border); font-weight:600; }
+  .sim-table td:first-child { text-align:left; font-weight:700; }
+  .sim-table tr:hover td { background:rgba(255,173,66,0.05); }
+  .sim-table .loss-cell { color:#ff8f7a; font-weight:800; font-size:15px; }
+  /* 손실 가로 막대 (표 안) */
+  .sim-table td.loss-bar-cell { padding:0; position:relative; min-width:200px; }
+  .loss-bar-wrap { display:flex; align-items:center; gap:10px; padding:8px 12px; }
+  .loss-bar-track { flex:1; height:22px; background:var(--bg); border-radius:5px; overflow:hidden; position:relative; border:1px solid var(--border); }
+  .loss-bar-fill { height:100%; background:linear-gradient(90deg, #ff6969, #ff8f7a); border-radius:4px; transition:width .35s ease; }
+  .loss-bar-val { color:#ff8f7a; font-weight:800; font-size:15px; white-space:nowrap; min-width:56px; text-align:right; }
+  .sim-table .sum-row .loss-bar-fill { background:linear-gradient(90deg, #ffad42, #ffd08f); }
+  .sim-table .sum-row .loss-bar-val { color:#ffd08f; }
+  .sim-table .sum-row td { background:rgba(255,105,105,0.09); border-top:2px solid var(--miss); border-bottom:none; font-size:15px; font-weight:800; padding:14px 12px; }
+  .sim-table .sum-row td:first-child { color:var(--amber); }
+  .sim-table .sum-row .loss-cell { font-size:18px; }
+  .sim-rate-badge { display:inline-block; background:rgba(255,173,66,0.15); color:#ffd08f; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:700; margin-left:6px; }
+  .placeholder { text-align:center; padding:120px 20px; color:var(--sub); }
+  .placeholder .big { font-size:22px; font-weight:800; color:var(--text); margin-bottom:10px; }
+  @media (max-width:980px){ .panel{min-width:100%;} .maintabs{flex-wrap:wrap;} .maintab{flex:1 1 30%;} .content,.sub-tabs,.sub-head{padding-left:16px;padding-right:16px;} .num-dashboard{grid-template-columns:repeat(2,1fr);} }
+</style>
+</head>
+<body>
+
+<div class="hub-header">
+  <div class="hub-title">선행지표 기반 경영 시스템 <span>| 조기감지 통합 대시보드 · 데모</span></div>
+  <div class="maintabs" id="maintabs"></div>
+</div>
+
+<div class="stage">
+  <!-- 수주: 기존 완성 대시보드를 iframe으로 -->
+  <div class="dv on" id="stage-1"><iframe class="dash" id="iframe-수주" srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;ko&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;UTF-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+&lt;title&gt;01 수주 — 선행지표 대시보드&lt;/title&gt;
+&lt;style&gt;
+  :root {
+    --bg: #0a1f1e; --card: #16322f; --deep: #0d1f1d; --text: #eef5ff; --sub: #8fa4bd; --border: #27453f;
+    --plan: #7e93ab; --actual: #8cb269; --miss: #ff6969; --amber: #ffad42;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: &#x27;Pretendard&#x27;,&#x27;Apple SD Gothic Neo&#x27;,&#x27;Malgun Gothic&#x27;,sans-serif; background: var(--bg); color: var(--text); margin:0; min-height:100vh; overflow-x:hidden; }
+  .header { background: var(--deep); padding: 18px 36px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); }
+  .header-title { font-size:22px; font-weight:800; color:var(--amber); letter-spacing:-0.5px; }
+  .header-title span { color:var(--plan); font-size:15px; font-weight:500; margin-left:10px; }
+  .header-date { font-size:13px; color:var(--sub); font-weight:600; }
+
+  .cat-tabs { display:flex; gap:14px; padding:20px 36px 0; }
+  .cat-tab { flex:1; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 22px; cursor:pointer; transition:all .18s; position:relative; overflow:hidden; }
+  .cat-tab:hover { border-color:var(--amber); transform:translateY(-2px); }
+  .cat-tab.active { border-color:var(--amber); background:linear-gradient(180deg, rgba(255,173,66,0.10), rgba(255,173,66,0.02)); }
+  .cat-tab.active::before { content:&quot;&quot;; position:absolute; top:0; left:0; right:0; height:4px; background:var(--amber); }
+  .cat-no { font-size:12px; color:var(--sub); font-weight:700; letter-spacing:1px; }
+  .cat-name { font-size:20px; font-weight:800; margin-top:4px; }
+  .cat-desc { font-size:12.5px; color:var(--sub); margin-top:6px; }
+  .cat-status { position:absolute; top:16px; right:18px; font-size:12px; font-weight:800; padding:4px 10px; border-radius:6px; }
+  .st-ok { background:rgba(140,178,105,0.15); color:#a8d480; border:1px solid var(--actual); }
+  .st-warn { background:rgba(255,173,66,0.13); color:#ffd08f; border:1px solid var(--amber); }
+  .st-danger { background:rgba(255,105,105,0.15); color:#ffb3ad; border:1px solid var(--miss); animation:blink 1.6s infinite; }
+  @keyframes blink { 50% { opacity:.55; } }
+
+  .sub-tabs { display:flex; gap:10px; padding:16px 36px 0; }
+  .sub-tab { padding:11px 26px; border-radius:9px; background:var(--deep); border:1px solid var(--border); font-size:15px; font-weight:700; color:var(--sub); cursor:pointer; transition:all .15s; }
+  .sub-tab:hover { color:var(--text); border-color:var(--sub); }
+  .sub-tab.active { background:var(--amber); color:#1d1508; border-color:var(--amber); }
+
+  .content { padding:20px 36px 36px; }
+  .view { display:none; }
+  .view.on { display:block; animation:fadeIn .25s; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px);} to { opacity:1; transform:none;} }
+
+  .panel-grid { display:flex; flex-wrap:wrap; gap:22px; align-items:stretch; }
+  .panel { flex:1 1 46%; min-width:430px; background:var(--card); border-radius:16px; padding:24px; border:1px solid var(--border); box-shadow:0 10px 25px rgba(0,0,0,0.3); display:flex; flex-direction:column; }
+  .panel-head { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:16px; }
+  .p-title { font-size:21px; font-weight:800; }
+  .p-sub { color:var(--sub); font-size:13px; margin-top:5px; }
+  .badge { padding:7px 14px; border-radius:8px; font-weight:800; font-size:14px; white-space:nowrap; }
+
+  .num-dashboard { display:grid; grid-template-columns:repeat(4,1fr); gap:11px; margin-bottom:14px; }
+  .num-dashboard.c3 { grid-template-columns:repeat(3,1fr); }
+  .num-box { background:var(--bg); border:1px solid var(--border); padding:14px 6px; border-radius:10px; text-align:center; }
+  .num-lbl { font-size:12px; color:var(--sub); font-weight:700; margin-bottom:6px; word-break:keep-all; }
+  .num-val { font-size:20px; font-weight:800; }
+  .num-val small { font-size:12px; color:var(--sub); font-weight:600; }
+  .num-box.ok { border-color:rgba(140,178,105,0.5); background:rgba(140,178,105,0.05); }
+  .num-box.ok .num-val { color:#a8d480; }
+  .num-box.warn { border-color:rgba(255,173,66,0.55); background:rgba(255,173,66,0.05); }
+  .num-box.warn .num-val { color:#ffd08f; }
+  .num-box.danger { border-color:rgba(255,105,105,0.7); background:rgba(255,105,105,0.08); }
+  .num-box.danger .num-val { color:#ff8f7a; }
+  .num-box.danger.live { animation:blink 1.6s infinite; }
+
+  .warning-msg { padding:13px 17px; border-radius:8px; font-size:14px; margin-bottom:14px; line-height:1.55; font-weight:600; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .warning-msg.safe { background:rgba(140,178,105,0.1); border:1px solid var(--actual); color:#c9e0a8; }
+  .warning-msg.warn { background:rgba(255,173,66,0.09); border:1px solid var(--amber); color:#ffd9a3; }
+  .warning-msg.danger { background:rgba(255,105,105,0.13); border:2px solid var(--miss); color:#ffb3ad; }
+  .impact-text { font-size:17px; font-weight:800; color:#ff8f7a; background:rgba(0,0,0,0.3); padding:5px 12px; border-radius:6px; white-space:nowrap; }
+
+  .chart-container { flex-grow:1; min-height:240px; background:var(--deep); border-radius:12px; padding:16px; border:1px solid var(--border); }
+  .custom-legend { display:flex; justify-content:center; gap:18px; margin-bottom:10px; font-size:12.5px; font-weight:bold; flex-wrap:wrap; }
+  .svg-canvas { width:100%; height:calc(100% - 26px); min-height:190px; }
+
+  .tracker-box { background:var(--deep); border-radius:10px; padding:16px; border:1px solid var(--border); margin-bottom:14px; }
+  .tracker-title { font-size:13.5px; color:var(--sub); margin-bottom:12px; font-weight:700; }
+  .task-list { display:flex; flex-direction:column; gap:9px; }
+  .task-item { display:flex; align-items:center; gap:12px; font-size:14px; background:var(--card); padding:11px 16px; border-radius:8px; border-left:4px solid var(--sub); font-weight:500; justify-content:space-between; flex-wrap:wrap; }
+  .task-item .left { display:flex; align-items:center; gap:10px; }
+  .task-item.done { border-left-color:var(--actual); }
+  .task-item.warn { border-left-color:var(--amber); background:rgba(255,173,66,0.06); }
+  .task-item.fail { border-left-color:var(--miss); background:rgba(255,105,105,0.1); }
+  .icon-done { color:var(--actual); font-weight:bold; }
+  .icon-warn { color:var(--amber); font-weight:bold; }
+  .icon-fail { color:var(--miss); font-weight:bold; font-size:17px; }
+  .amt { font-weight:800; font-size:14px; }
+  .amt.red { color:#ff8f7a; } .amt.green { color:#a8d480; } .amt.amber { color:#ffd08f; }
+
+  .hbar-row { display:flex; align-items:center; gap:12px; font-size:13px; margin-bottom:9px; font-weight:600; }
+  .hbar-name { width:92px; color:var(--sub); flex-shrink:0; }
+  .hbar-track { flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; height:20px; position:relative; overflow:hidden; }
+  .hbar-fill { height:100%; border-radius:5px; }
+  .hbar-val { width:46px; text-align:right; font-weight:800; flex-shrink:0; }
+
+  .scn-row { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+  .scn-lbl { font-size:13px; color:var(--sub); font-weight:700; margin-right:4px; }
+  .scn-btn { padding:8px 16px; border-radius:8px; background:var(--deep); border:1px solid var(--border); font-size:14px; font-weight:800; color:var(--sub); cursor:pointer; transition:all .13s; }
+  .scn-btn:hover { color:var(--text); border-color:var(--sub); }
+  .scn-btn.active { background:var(--amber); color:#1d1508; border-color:var(--amber); }
+
+  .note { font-size:11.5px; color:var(--sub); margin-top:14px; text-align:right; font-style:italic; }
+  @media (max-width:980px) { .panel { min-width:100%; } .cat-tabs,.sub-tabs,.content { padding-left:16px; padding-right:16px; } .num-dashboard { grid-template-columns:repeat(2,1fr); } }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;div class=&quot;header&quot;&gt;
+  &lt;div class=&quot;header-title&quot;&gt;&lt;span id=&quot;hd-title&quot;&gt;&lt;/span&gt; &lt;span id=&quot;hd-sub&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+  &lt;div class=&quot;header-date&quot; id=&quot;hd-date&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;cat-tabs&quot;&gt;
+  &lt;div class=&quot;cat-tab&quot; id=&quot;cat-1&quot; onclick=&quot;selectCat(1)&quot;&gt;
+    &lt;div class=&quot;cat-no&quot;&gt;대분류 1&lt;/div&gt;&lt;div class=&quot;cat-name&quot;&gt;신규수주 관리&lt;/div&gt;
+    &lt;div class=&quot;cat-desc&quot; id=&quot;cdesc-1&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;cat-status&quot; id=&quot;cst-1&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;cat-tab&quot; id=&quot;cat-2&quot; onclick=&quot;selectCat(2)&quot;&gt;
+    &lt;div class=&quot;cat-no&quot;&gt;대분류 2&lt;/div&gt;&lt;div class=&quot;cat-name&quot;&gt;수주잔고 관리&lt;/div&gt;
+    &lt;div class=&quot;cat-desc&quot; id=&quot;cdesc-2&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;cat-status&quot; id=&quot;cst-2&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;cat-tab&quot; id=&quot;cat-3&quot; onclick=&quot;selectCat(3)&quot;&gt;
+    &lt;div class=&quot;cat-no&quot;&gt;대분류 3&lt;/div&gt;&lt;div class=&quot;cat-name&quot;&gt;분양사업 관리&lt;/div&gt;
+    &lt;div class=&quot;cat-desc&quot; id=&quot;cdesc-3&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;cat-status&quot; id=&quot;cst-3&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div class=&quot;sub-tabs&quot; id=&quot;subtabs&quot;&gt;&lt;/div&gt;
+
+&lt;div class=&quot;content&quot;&gt;
+
+  &lt;!-- 1.1 입찰관리 --&gt;
+  &lt;div class=&quot;view&quot; id=&quot;v-1-1&quot;&gt;
+    &lt;div class=&quot;panel-grid&quot;&gt;
+      &lt;div class=&quot;panel&quot; id=&quot;pnl-bid&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;입찰 참여 · 수주 전환율&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;bid-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;bid-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard&quot;&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;입찰 참여 (누계)&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bid-n1&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;수주 성공&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bid-n2&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box ok&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;수주 전환율&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bid-n3&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;전년 동기&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bid-n4&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg&quot; id=&quot;bid-msg&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;tracker-box&quot;&gt;
+          &lt;div class=&quot;tracker-title&quot; id=&quot;bid-list-title&quot;&gt;&lt;/div&gt;
+          &lt;div class=&quot;task-list&quot; id=&quot;bid-list&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot;&gt;
+          &lt;div class=&quot;custom-legend&quot;&gt;&lt;span style=&quot;color:#7e93ab;&quot;&gt;■ 월별 입찰 참여(건)&lt;/span&gt;&lt;span style=&quot;color:#8cb269;&quot;&gt;━━ 누계 수주 전환율(%)&lt;/span&gt;&lt;/div&gt;
+          &lt;div id=&quot;svg-bid&quot; class=&quot;svg-canvas&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;panel&quot; id=&quot;pnl-pipe&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;수주 실적 · 연간 착지 전망&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;pipe-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;pipe-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard&quot;&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;6월 누계 수주&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;pipe-n1&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;6월 누계 수주액&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;pipe-n2&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box warn&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;연말 추정 수주&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;pipe-n3&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box warn&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;예년 평균 수주액&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;pipe-n4&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg&quot; id=&quot;pipe-msg&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot;&gt;
+          &lt;div class=&quot;custom-legend&quot;&gt;&lt;span style=&quot;color:#7e93ab;&quot;&gt;■ 연간 수주액(억)&lt;/span&gt;&lt;span style=&quot;color:#ffad42;&quot;&gt;■ 올해(6월 누계)&lt;/span&gt;&lt;span style=&quot;color:#ff6969;&quot;&gt;╌ 연말 추정&lt;/span&gt;&lt;/div&gt;
+          &lt;div id=&quot;svg-pipe&quot; class=&quot;svg-canvas&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;note&quot; id=&quot;pipe-note&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 1.2 수주 건전성 --&gt;
+  &lt;div class=&quot;view&quot; id=&quot;v-1-2&quot;&gt;
+    &lt;div class=&quot;panel-grid&quot;&gt;
+      &lt;div class=&quot;panel&quot; style=&quot;border-top:5px solid var(--amber);&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;수주 건전성 지수 (SPI)&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;spi-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;spi-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard&quot;&gt;
+          &lt;div class=&quot;num-box warn&quot;&gt;&lt;div class=&quot;num-lbl&quot; id=&quot;spi-l1&quot;&gt;&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;spi-n1&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;전분기 대비&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;spi-n2&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;기준선&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;spi-n3&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box danger&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;최저 구성항목&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;spi-n4&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg warn&quot;&gt;&lt;div id=&quot;spi-msg&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot;&gt;
+          &lt;div class=&quot;custom-legend&quot;&gt;&lt;span style=&quot;color:#7e93ab;&quot; id=&quot;spi-lg1&quot;&gt;&lt;/span&gt;&lt;span style=&quot;color:#ff6969;&quot; id=&quot;spi-lg2&quot;&gt;&lt;/span&gt;&lt;span style=&quot;color:#8cb269;&quot;&gt;━━ 분기별 SPI&lt;/span&gt;&lt;/div&gt;
+          &lt;div id=&quot;svg-spi&quot; class=&quot;svg-canvas&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;note&quot; id=&quot;spi-note&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;panel&quot; style=&quot;border-top:5px solid var(--amber);&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;수주 MIX&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;mix-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge st-warn&quot;&gt;🟡 주택 저조&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard&quot;&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;누계 수주 계&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;mix-n1&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;토목(인프라)&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;mix-n2&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;건축&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;mix-n3&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box warn&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;주택&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;mix-n4&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot; style=&quot;flex-grow:0; min-height:225px; margin-bottom:14px;&quot;&gt;
+          &lt;div id=&quot;svg-mixdonut&quot; class=&quot;svg-canvas&quot; style=&quot;min-height:210px;&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;tracker-box&quot; style=&quot;margin-bottom:0;&quot;&gt;
+          &lt;div class=&quot;tracker-title&quot; id=&quot;mix-cmp-title&quot;&gt;&lt;/div&gt;
+          &lt;div id=&quot;mix-bars&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;note&quot; id=&quot;mix-note&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 2.1 잔고 적정성 --&gt;
+  &lt;div class=&quot;view&quot; id=&quot;v-2-1&quot;&gt;
+    &lt;div class=&quot;panel-grid&quot;&gt;
+      &lt;div class=&quot;panel&quot; id=&quot;pnl-bal-i&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;인프라 사업&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;bali-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;bali-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard&quot;&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;전월 잔고&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bali-n1&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;당월 증감&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bali-n2&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;현 수주잔고&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bali-n3&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot; id=&quot;bali-b4&quot;&gt;&lt;div class=&quot;num-lbl&quot; id=&quot;bali-l4&quot;&gt;&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bali-n4&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg&quot; id=&quot;bali-msg&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot;&gt;
+          &lt;div class=&quot;custom-legend&quot;&gt;&lt;span style=&quot;color:#7e93ab;&quot; id=&quot;bali-lg&quot;&gt;&lt;/span&gt;&lt;span style=&quot;color:#8cb269;&quot;&gt;━━ 월별 수주잔고 추이(억)&lt;/span&gt;&lt;/div&gt;
+          &lt;div id=&quot;svg-bal-infra&quot; class=&quot;svg-canvas&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;panel&quot; id=&quot;pnl-bal-a&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;건축 사업&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;bala-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;bala-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard&quot;&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;전월 잔고&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bala-n1&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;당월 증감&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bala-n2&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;현 수주잔고&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bala-n3&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot; id=&quot;bala-b4&quot;&gt;&lt;div class=&quot;num-lbl&quot; id=&quot;bala-l4&quot;&gt;&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;bala-n4&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg&quot; id=&quot;bala-msg&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot;&gt;
+          &lt;div class=&quot;custom-legend&quot;&gt;&lt;span style=&quot;color:#7e93ab;&quot; id=&quot;bala-lg&quot;&gt;&lt;/span&gt;&lt;span style=&quot;color:#8cb269;&quot;&gt;━━ 월별 수주잔고 추이(억)&lt;/span&gt;&lt;/div&gt;
+          &lt;div id=&quot;svg-bal-arch&quot; class=&quot;svg-canvas&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 2.2 잔고 추이 전망 --&gt;
+  &lt;div class=&quot;view&quot; id=&quot;v-2-2&quot;&gt;
+    &lt;div class=&quot;panel-grid&quot;&gt;
+      &lt;div class=&quot;panel&quot; id=&quot;pnl-proj-i&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;인프라 — 월별 잔고 전망&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;proji-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;proji-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard c3&quot;&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot; id=&quot;proji-l1&quot;&gt;&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;proji-n1&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box danger&quot; id=&quot;proji-b2&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;연말 추정잔고&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;proji-n2&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box danger live&quot; id=&quot;proji-b3&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;추가수주 필요액&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;proji-n3&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg&quot; id=&quot;proji-msg&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot;&gt;
+          &lt;div class=&quot;custom-legend&quot;&gt;&lt;span style=&quot;color:#7e93ab;&quot;&gt;╌╌ 적정잔고&lt;/span&gt;&lt;span style=&quot;color:#ff6969;&quot;&gt;- - 추정 궤적&lt;/span&gt;&lt;span style=&quot;color:#8cb269;&quot;&gt;━━ 실적 잔고&lt;/span&gt;&lt;/div&gt;
+          &lt;div id=&quot;svg-proj-infra&quot; class=&quot;svg-canvas&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;panel&quot; id=&quot;pnl-proj-a&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;건축 — 월별 잔고 전망&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;proja-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;proja-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard c3&quot;&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot; id=&quot;proja-l1&quot;&gt;&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;proja-n1&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box warn&quot; id=&quot;proja-b2&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;연말 추정잔고&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;proja-n2&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box warn&quot; id=&quot;proja-b3&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;추가수주 필요액&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;proja-n3&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg&quot; id=&quot;proja-msg&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot;&gt;
+          &lt;div class=&quot;custom-legend&quot;&gt;&lt;span style=&quot;color:#7e93ab;&quot;&gt;╌╌ 적정잔고&lt;/span&gt;&lt;span style=&quot;color:#ff6969;&quot;&gt;- - 추정 궤적&lt;/span&gt;&lt;span style=&quot;color:#8cb269;&quot;&gt;━━ 실적 잔고&lt;/span&gt;&lt;/div&gt;
+          &lt;div id=&quot;svg-proj-arch&quot; class=&quot;svg-canvas&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 3.1 초기분양 감지 (클릭형) --&gt;
+  &lt;div class=&quot;view&quot; id=&quot;v-3-1&quot;&gt;
+    &lt;div class=&quot;panel-grid&quot;&gt;
+      &lt;!-- 왼쪽: 현장 리스트 --&gt;
+      &lt;div class=&quot;panel&quot; id=&quot;pnl-salelist&quot; style=&quot;border-top:5px solid var(--miss); flex:1 1 40%; min-width:380px;&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;분양 현장 센서&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;sale-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;sale-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg&quot; id=&quot;sale-msg&quot; style=&quot;margin-bottom:14px;&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;tracker-box&quot; style=&quot;flex-grow:1;&quot;&gt;
+          &lt;div class=&quot;tracker-title&quot;&gt;현재 분양 중 현장 (클릭 시 우측 상세) — 판정: 현재분양률 vs EXIT 목표 갭&lt;/div&gt;
+          &lt;div class=&quot;task-list&quot; id=&quot;sale-list&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;note&quot; id=&quot;sale-note&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;!-- 오른쪽: 선택 현장 상세 --&gt;
+      &lt;div class=&quot;panel&quot; id=&quot;pnl-saledetail&quot; style=&quot;border-top:5px solid var(--amber); flex:1 1 55%; min-width:430px;&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot; id=&quot;sd-title&quot;&gt;현장 선택&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;sd-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;sd-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard c3&quot; id=&quot;sd-top&quot;&gt;&lt;/div&gt;
+        &lt;div id=&quot;sd-sections&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 3.2 PF 전이 리스크 --&gt;
+  &lt;div class=&quot;view&quot; id=&quot;v-3-2&quot;&gt;
+    &lt;div class=&quot;panel-grid&quot;&gt;
+      &lt;div class=&quot;panel&quot; style=&quot;border-top:5px solid var(--amber);&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;PF 만기 스케줄&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;pf-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;pf-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;tracker-box&quot;&gt;
+          &lt;div class=&quot;tracker-title&quot;&gt;만기 도래순 (가까운 순)&lt;/div&gt;
+          &lt;div class=&quot;task-list&quot; id=&quot;pf-list&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg warn&quot;&gt;&lt;div id=&quot;pf-msg&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot;&gt;
+          &lt;div class=&quot;custom-legend&quot;&gt;&lt;span style=&quot;color:#ffad42;&quot;&gt;■ 분기별 만기도래 PF 규모(억)&lt;/span&gt;&lt;/div&gt;
+          &lt;div id=&quot;svg-pf&quot; class=&quot;svg-canvas&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;panel&quot; style=&quot;border-top:5px solid var(--miss);&quot;&gt;
+        &lt;div class=&quot;panel-head&quot;&gt;
+          &lt;div&gt;&lt;div class=&quot;p-title&quot;&gt;전이 시 차입 영향&lt;/div&gt;&lt;div class=&quot;p-sub&quot; id=&quot;debt-sub&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;badge&quot; id=&quot;debt-badge&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;num-dashboard&quot;&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;현 순차입금의존도&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;debt-n1&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;위험 사업장 보증액&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;debt-n2&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box danger&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;전이 시 의존도&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;debt-n3&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;div class=&quot;num-box warn&quot;&gt;&lt;div class=&quot;num-lbl&quot; id=&quot;debt-l4&quot;&gt;&lt;/div&gt;&lt;div class=&quot;num-val&quot; id=&quot;debt-n4&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;warning-msg danger&quot;&gt;&lt;div id=&quot;debt-msg&quot;&gt;&lt;/div&gt;&lt;div class=&quot;impact-text&quot; id=&quot;debt-link&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;chart-container&quot;&gt;
+          &lt;div class=&quot;custom-legend&quot;&gt;&lt;span style=&quot;color:#8cb269;&quot;&gt;━━ 순차입금의존도 추이&lt;/span&gt;&lt;span style=&quot;color:#ff6969;&quot;&gt;- - 전이 스트레스 경로&lt;/span&gt;&lt;span style=&quot;color:#7e93ab;&quot; id=&quot;debt-lg&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+          &lt;div id=&quot;svg-debt&quot; class=&quot;svg-canvas&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;script&gt;
+/* ═══════════════════════════════════════════════════════════════
+   수주 선행지표 대시보드 — 월간 데이터 파일
+   ▶ 매월 마감 후 이 파일의 숫자·문장만 수정하면 대시보드가 자동 반영됩니다.
+   ▶ 대시보드.html 파일은 건드릴 필요 없음. 수정 후 저장 → F5(새로고침)
+   ─────────────────────────────────────────────
+   ◆ 숫자든 문장이든 따옴표(&quot;&quot;) 안의 내용만 수정하세요
+   ◆ 문장 속 {중괄호}는 자동 계산값이 들어가는 자리입니다
+     예: &quot;부족분 {부족}억&quot; → 화면에는 &quot;부족분 5,580억&quot;
+     중괄호 태그는 지우거나 위치를 옮겨도 되지만 이름을 바꾸면 안 됩니다
+   ─────────────────────────────────────────────
+   [월간 갱신]  기준월, 입찰, 잔고 실적, 차입
+   [분기 갱신]  SPI, 수주MIX
+   [수시 갱신]  분양 사업장, PF 만기, 수주예정, 각종 문구
+═══════════════════════════════════════════════════════════════ */
+
+const DATA = {
+
+  /* ── 기준 시점 · 상단 문구 ─────────────────── */
+  기준연도: 2026,
+  기준월: 6,              // 실적 마감월. 실적 배열들은 1월~기준월까지 입력
+
+  헤더제목: &quot;01 수주 — 선행지표 대시보드&quot;,
+  헤더부제: &quot;데이터 분리형 · data.js만 갱신 (수치는 예시)&quot;,
+
+  대분류설명: {
+    1: &quot;입찰 → 수주 전환, 들어오는 물량의 건전성 검증&quot;,
+    2: &quot;적정잔고 대비 현재 위치 · 연말 착지 전망&quot;,
+    3: &quot;초기분양 신호 → PF 전이 경로·크기 감지&quot;,
+  },
+
+  /* ══════════ 대분류 1. 신규수주 관리 ══════════ */
+
+  입찰: {                                   // [월간 갱신]
+    부제: &quot;종심제 중심 파이프라인 유입 강도&quot;,     // 패널 소제목 (&quot;{월}월 누계 |&quot; 뒤에 붙음)
+    월별참여: [6, 7, 8, 6, 7, 6],            // 1월~기준월, 월별 입찰 참여 건수 (누계 40건)
+    누계전환율: [0, 2.9, 5.0, 6.4, 7.0, 7.5],// 1월~기준월, 누계 수주 전환율(%)
+    수주건수_인프라: 2,
+    수주건수_건축: 1,
+    전년동기_전환율: 6.8,                     // %
+    상태: &quot;ok&quot;,                              // ok(초록) | warn(노랑) | danger(빨강)
+    상태문구: &quot;전환율 전년 동기(6.8%) 대비 개선 — 수주 성공 금액 비중 인프라 71% · 건축 29%&quot;,
+    성공현장: [                              // 상태: done(초록) | warn(노랑) | fail(빨강)
+      { 이름: &quot;[인프라] 남부내륙철도(김천~거제) 4-1공구&quot;, 금액: 1887, 상태: &quot;done&quot; },
+      { 이름: &quot;[인프라] 평택 주기장 및 유도로 포장공사&quot;,   금액: 793,  상태: &quot;done&quot; },
+      { 이름: &quot;[건축] 인천계양 A17BL 아파트 6공구&quot;,       금액: 1090, 상태: &quot;done&quot; },
+    ],
+  },
+  파이프라인: {                              // [수시 갱신] 과거 실적 기반 연간 착지 전망
+    부제: &quot;과거 연간 실적 대비 올해 수주 착지 전망&quot;,
+    /* 과거 3년 연간 실적 (참여건수 / 수주건수 / 수주액 억) */
+    과거실적: [
+      { 연도: &quot;23년&quot;, 참여: 78, 수주: 6, 수주액: 6800 },
+      { 연도: &quot;24년&quot;, 참여: 82, 수주: 7, 수주액: 7500 },
+      { 연도: &quot;25년&quot;, 참여: 75, 수주: 5, 수주액: 6200 },
+    ],
+    /* 올해 현황 (6월 누계) + 연말 추정 */
+    올해_참여: 40,
+    올해_수주: 3,
+    올해_수주액: 3770,       // 6월 누계 수주액 (1887+793+1090)
+    연말추정_수주: 6,        // 현 페이스 기준 연말 추정 건수
+    연말추정_수주액: 7500,   // 연말 추정 수주액
+    과거평균_수주액: 6833,   // 3년 평균 (자동 아님, 참고표시용)
+    상태: &quot;warn&quot;,
+    상태문구: &quot;6월까지 3건·3,770억 — 예년 평균(6.8건·6,833억)의 절반 페이스. 하반기 대형 인프라 입찰 성패가 연간 목표 달성 관건&quot;,
+    하단주석: &quot;* 과거 실적 대비 올해 착지 전망 — 수치는 데모용 예시&quot;,
+  },
+
+  SPI: {                                     // [분기 갱신]
+    부제: &quot;수익성·수금조건·발주처 신용·포트폴리오 균형 복합지수 (분기)&quot;,
+    분기라벨: [&quot;25.1Q&quot;, &quot;25.2Q&quot;, &quot;25.3Q&quot;, &quot;25.4Q&quot;, &quot;26.1Q&quot;],
+    분기값:   [78, 76, 75, 73, 71],
+    기준선: 70,
+    경보선: 65,
+    최저구성_이름: &quot;균형&quot;,
+    최저구성_점수: 58,
+    상태문구: &quot;SPI 4분기 연속 하락, 기준선(70) 근접 — 주택 수주 부진에 따른 포트폴리오 균형 점수(58점) 하락이 주요인. 기준선 하회 시 수주 전략 조정 검토&quot;,
+    하단주석: &quot;* SPI 산식·구성요소는 영업기획과 정의 확정 예정 (현재 데모 구성)&quot;,
+  },
+
+  MIX: {                                     // [분기 갱신] 누계 수주 구성 (억)
+    라벨: &quot;26년 1분기 누계 수주 구성 (한건협 그룹별 실적 기준)&quot;,
+    토목: 2680,
+    건축: 1131,
+    주택: 1090,
+    비교제목: &quot;주택(정비사업) 수주 비중 — 동종업계 그룹 비교&quot;,
+    업계비교: [
+      { 이름: &quot;Ⅱ그룹 평균&quot;, 값: 75 },
+      { 이름: &quot;Ⅲ그룹 평균&quot;, 값: 46 },
+    ],
+    당사_주택비중: 22,
+    하단주석: &quot;* 한건협 그룹별 수주실적 기준 — 주택(정비사업) 수주 확대 시급&quot;,
+  },
+
+  /* ══════════ 대분류 2. 수주잔고 관리 ══════════ */
+  /* 적정잔고 = 목표매출 × 공사기간 (사내 고정 기준)                */
+  /* 자동계산: {적정} {비율} {부족} {공사기간} {수주합} {필요} {기성} {연말} */
+
+  잔고_인프라: {                             // [월간 갱신]
+    목표매출: 5000, 공사기간: 6,             // → 적정잔고 30,000억 자동 계산
+    월별잔고: [25212, 24972, 24658, 24790, 24420, 23959],  // 1월~기준월
+    월평균기성: 447,                         // 향후 월 기성 소화액 (억)
+    수주예정: [0, 0, 0, 0, 0, 0],            // 기준월+1 ~ 12월 (7,8,9,10,11,12월)
+    /* 2.1 잔고 적정성 문구 — 부족/충족 상황에 맞는 쪽이 자동 사용됨 */
+    경보문구: &quot;적정잔고 {적정}억 대비 {비율}% 수준 — 부족분 {부족}억&quot;,
+    정상문구: &quot;적정잔고 충족 — 회전 속도({공사기간}년) 감안한 신규수주 지속 유입 필요&quot;,
+    /* 2.2 잔고 추이 전망 */
+    전망메모: &quot;향후 수주예정 없음 가정 · 기성 소화만 반영&quot;,   // 패널 소제목
+    전망문구: &quot;신규 유입 없이 기성 소화만 지속 시 연말 적정선({적정}억) 대비 -{필요}억 — 매출 감소 확정 경로&quot;,       // 연말 미달 시 사용
+    전망정상문구: &quot;수주예정 {수주합}억 반영 시 연말 추정잔고 {연말}억 — 적정선({적정}억) 상회 전망. 수주예정 물량의 계약 확정 여부 지속 관리 필요&quot;,  // 연말 충족 시 사용
+  },
+
+  잔고_건축: {                               // [월간 갱신]
+    목표매출: 15000, 공사기간: 2,            // → 적정잔고 30,000억 자동 계산
+    월별잔고: [22213, 23444, 27933, 29491, 30801, 29939],
+    월평균기성: 1111,
+    수주예정: [718, 0, 1346, 2770, 1474, 733],  // 7~12월, 합계 7,041억
+    경보문구: &quot;적정잔고 {적정}억 대비 {비율}% 수준 — 부족분 {부족}억&quot;,
+    정상문구: &quot;적정잔고 충족 — 회전 속도({공사기간}년) 감안한 신규수주 지속 유입 필요&quot;,
+    전망메모: &quot;하반기 수주예정 7,041억 · 기성 소화 반영&quot;,
+    전망문구: &quot;수주예정 {수주합}억 반영에도 기성 소화 속도가 유입을 상회 — 연말 적정선({적정}억) 대비 -{필요}억 이탈 예상. 4분기 추가 물량 확보 필요&quot;,   // 연말 미달 시 사용
+    전망정상문구: &quot;수주예정 {수주합}억 반영 시 연말 추정잔고 {연말}억 — 적정선({적정}억) 상회 전망. 수주예정 물량의 계약 확정 여부 지속 관리 필요&quot;,  // 연말 충족 시 사용
+  },
+
+  /* ══════════ 대분류 3. 분양사업 관리 ══════════ */
+
+  분양: {                                    // [수시 갱신] 분양현황 실데이터 기준
+    부제: &quot;현재 분양 중 전 현장 | 현장 클릭 시 우측 상세&quot;,
+    /* 판정: 갭(=EXIT목표 - 현재분양률).  달성/초과 → 정상 / 30%p 미만 미달 → 주의 / 30%p 이상 미달 → 경보 */
+    주의기준_갭: 0,      // 이 이상 미달이면 주의
+    경보기준_갭: 30,     // 이 이상(%p) 미달이면 경보
+    /* 현장 목록 — 구분이 여러 개인 현장은 세부[]에 나눠 입력.
+       도급/PF는 현장 공통(합산). PF 0 → &quot;없음&quot; 표시. EXIT 없으면(전세 등) 분양률 자체로 판정 */
+    현장: [
+      { 이름:&quot;광주 상무 퍼스티넘&quot;, 도급:1010, PF:25, 세부:[
+        { 구분:&quot;일반분양&quot;, 총세대:226, 계약:58,  EXIT:100 },
+        { 구분:&quot;전세분양&quot;, 총세대:168, 계약:168, EXIT:null },
+      ]},
+      { 이름:&quot;대전 르에브&quot;, 도급:3629, PF:350, 세부:[
+        { 구분:&quot;아파트&quot;, 총세대:870, 계약:859, EXIT:100 },
+      ]},
+      { 이름:&quot;대전 씨엘리오&quot;, 도급:742, PF:0, 세부:[
+        { 구분:&quot;아파트&quot;,   총세대:146, 계약:144, EXIT:87 },
+        { 구분:&quot;오피스텔&quot;, 총세대:98,  계약:35,  EXIT:87 },
+      ]},
+      { 이름:&quot;대전 에테르&quot;, 도급:678, PF:112, 세부:[
+        { 구분:&quot;아파트&quot;,   총세대:138, 계약:105, EXIT:100 },
+        { 구분:&quot;오피스텔&quot;, 총세대:60,  계약:32,  EXIT:100 },
+      ]},
+      { 이름:&quot;미사 아넬로&quot;, 도급:1140, PF:175, 세부:[
+        { 구분:&quot;오피스텔&quot;, 총세대:449, 계약:434, EXIT:null, EXIT표시:&quot;기성불&quot; },
+      ]},
+      { 이름:&quot;수성 포레스트&quot;, 도급:2192, PF:0, 세부:[
+        { 구분:&quot;아파트&quot;, 총세대:755, 계약:689, EXIT:100 },
+      ]},
+      { 이름:&quot;아산 벨코어&quot;, 도급:1047, PF:0, 세부:[
+        { 구분:&quot;아파트&quot;,   총세대:299, 계약:270, EXIT:85 },
+        { 구분:&quot;오피스텔&quot;, 총세대:20,  계약:20,  EXIT:100 },
+      ]},
+      { 이름:&quot;해운대 엘마르&quot;, 도급:763, PF:502, 세부:[
+        { 구분:&quot;오피스텔&quot;, 총세대:180, 계약:94, EXIT:95 },
+      ]},
+      { 이름:&quot;라피아노 양주옥정&quot;, 도급:0, PF:0, 세부:[
+        { 구분:&quot;아파트&quot;, 총세대:175, 계약:175, EXIT:100 },
+      ]},
+      { 이름:&quot;스위첸 웰츠타워 2차&quot;, 도급:0, PF:0, 세부:[
+        { 구분:&quot;오피스텔&quot;, 총세대:20, 계약:14, EXIT:100 },
+      ]},
+    ],
+    하단주석: &quot;* 분양현황(주간) 기준 · 도급액을 분양 규모로 간주. EXIT=준공목표 분양률&quot;,
+  },
+
+  PF: {                                      // [수시 갱신] 만기 도래순으로 입력
+    부제: &quot;도래순 정렬 | 차환 스트레스 타임라인&quot;,
+    목록: [
+      { 이름: &quot;●● 2차 PF (26.09 만기) — 초기분양 경보 사업장&quot;, 금액: 1200, 상태: &quot;fail&quot; },
+      { 이름: &quot;☆☆ 오피스텔 PF (26.11 만기)&quot;,                  금액: 800,  상태: &quot;warn&quot; },
+      { 이름: &quot;◇◇ 1단지 PF (27.03 만기) — 분양 87%, 차환 리스크 없음&quot;, 금액: 950, 상태: &quot;done&quot; },
+      { 이름: &quot;▽▽ 지식산업센터 PF (27.08 만기)&quot;,               금액: 600,  상태: &quot;done&quot; },
+    ],
+    분기만기_라벨: [&quot;26.3Q&quot;, &quot;26.4Q&quot;, &quot;27.1Q&quot;, &quot;27.3Q&quot;],
+    분기만기_금액: [1200, 800, 950, 600],
+    상태문구: &quot;9월 만기 ●● 2차 — 분양률 45%로 차환 실패 시 보증 이행 청구 가능성. 만기 3개월 전 대응 개시 필요&quot;,
+  },
+
+  차입: {                                    // [월간 갱신]
+    부제: &quot;위험 보증액 실채무 전환 가정 스트레스&quot;,
+    월별의존도: [27, 27.5, 27.2, 27.8, 28, 28],  // 1월~기준월 (%)
+    위험보증액: 2000,                        // 초기분양 경보 사업장 보증액 (억)
+    전이시_의존도: 41,                       // 위험보증 전이 가정 시 (%)
+    경보선: 50,
+    목표선: 30,
+    스트레스경로: [35, 41],                  // 전이 T+1, T+2 경로
+    /* 자동계산 태그: {현재} {전이} {목표} {경보} */
+    문구: &quot;초기분양 경보 사업장 보증 전이 가정 시 의존도 {현재}% → {전이}% — 목표({목표}%) 초과, 경보선({경보}%) 이내&quot;,
+    연계문구: &quot;자금 대분류 차입부담 연계&quot;,
+  },
+
+};
+
+&lt;/script&gt;
+&lt;script&gt;
+  /* ══════════ 유틸 ══════════ */
+  const $ = id =&gt; document.getElementById(id);
+  const fmt = v =&gt; v.toLocaleString();
+  const T = (tpl, vars) =&gt; (tpl||&#x27;&#x27;).replace(/\{(.+?)\}/g, (m,k)=&gt; vars[k]!==undefined ? vars[k] : m);
+  const BADGE = { ok:[&#x27;st-ok&#x27;,&#x27;🟢&#x27;], warn:[&#x27;st-warn&#x27;,&#x27;🟡&#x27;], danger:[&#x27;st-danger&#x27;,&#x27;🚨&#x27;] };
+  function setBadge(id, level, text){ const el=$(id); el.className=&#x27;badge &#x27;+BADGE[level][0]; el.textContent=BADGE[level][1]+&#x27; &#x27;+text; }
+  function setMsg(id, level, html){ const el=$(id); el.className=&#x27;warning-msg &#x27;+(level===&#x27;ok&#x27;?&#x27;safe&#x27;:level); el.innerHTML=&#x27;&lt;div&gt;&#x27;+html+&#x27;&lt;/div&gt;&#x27;; }
+  function setCatStatus(id, level, text){ const el=$(id); el.className=&#x27;cat-status &#x27;+BADGE[level][0]; el.textContent=text; }
+  function taskItem(st, name, amtText, amtCls){
+    const icon = st===&#x27;done&#x27; ? &#x27;&lt;span class=&quot;icon-done&quot;&gt;✔&lt;/span&gt;&#x27; : st===&#x27;warn&#x27; ? &#x27;&lt;span class=&quot;icon-warn&quot;&gt;●&lt;/span&gt;&#x27; : &#x27;&lt;span class=&quot;icon-fail&quot;&gt;⚠&lt;/span&gt;&#x27;;
+    const nm = st===&#x27;fail&#x27; ? `&lt;strong style=&quot;color:#ffb3ad&quot;&gt;${name}&lt;/strong&gt;` : name;
+    return `&lt;div class=&quot;task-item ${st}&quot;&gt;&lt;div class=&quot;left&quot;&gt;${icon} ${nm}&lt;/div&gt;&lt;span class=&quot;amt ${amtCls||&#x27;&#x27;}&quot;&gt;${amtText}&lt;/span&gt;&lt;/div&gt;`;
+  }
+
+  /* ══════════ 차트 엔진 ══════════ */
+  function lineChart(id, series, maxY, labels) {
+    const w=600, h=215, padX=30, padY=22, dw=w-padX*2, dh=h-padY*2, n=labels.length;
+    const xs=i=&gt;padX+i*(dw/(n-1)), ys=v=&gt;padY+dh-(v/maxY)*dh;
+    let grid=&#x27;&#x27;, lbl=&#x27;&#x27;;
+    labels.forEach((m,i)=&gt;{ grid+=`&lt;line x1=&quot;${xs(i)}&quot; y1=&quot;${padY}&quot; x2=&quot;${xs(i)}&quot; y2=&quot;${padY+dh}&quot; stroke=&quot;#16322f&quot; stroke-width=&quot;1&quot;/&gt;`;
+      lbl+=`&lt;text x=&quot;${xs(i)}&quot; y=&quot;${h-3}&quot; fill=&quot;#8fa4bd&quot; font-size=&quot;10.5&quot; text-anchor=&quot;middle&quot;&gt;${m}&lt;/text&gt;`; });
+    let paths=&#x27;&#x27;, dots=&#x27;&#x27;, vt=&#x27;&#x27;;
+    series.forEach(s=&gt;{
+      let d=&#x27;&#x27;, seen=0;
+      s.data.forEach((v,i)=&gt;{
+        if(v===null||v===undefined) return;
+        d+=(d?&#x27; L&#x27;:&#x27;M&#x27;)+` ${xs(i)} ${ys(v)}`;
+        if(s.dots) dots+=`&lt;circle cx=&quot;${xs(i)}&quot; cy=&quot;${ys(v)}&quot; r=&quot;3.5&quot; fill=&quot;${s.color}&quot; stroke=&quot;#0d1f1d&quot; stroke-width=&quot;2&quot;/&gt;`;
+        if(s.vlab){ seen++;
+          if(!(s.vskip &amp;&amp; seen&lt;=s.vskip)){
+            const txt = s.lab ? s.lab[i] : fmt(v);
+            vt+=`&lt;text x=&quot;${xs(i)}&quot; y=&quot;${s.below?ys(v)+17:ys(v)-9}&quot; fill=&quot;${s.color}&quot; font-size=&quot;9.5&quot; font-weight=&quot;700&quot; text-anchor=&quot;middle&quot;&gt;${txt}&lt;/text&gt;`;
+          } }
+      });
+      paths+=`&lt;path d=&quot;${d}&quot; stroke=&quot;${s.color}&quot; stroke-width=&quot;${s.width||2.5}&quot; fill=&quot;none&quot; stroke-dasharray=&quot;${s.dash||&#x27;&#x27;}&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;/&gt;`;
+    });
+    $(id).innerHTML=`&lt;svg viewBox=&quot;0 0 ${w} ${h}&quot; width=&quot;100%&quot; height=&quot;100%&quot; preserveAspectRatio=&quot;none&quot;&gt;${grid}${paths}${dots}${vt}${lbl}&lt;/svg&gt;`;
+  }
+  function barChart(id, data, labels, color) {
+    const maxY=Math.max(...data)*1.25, w=600, h=215, padX=30, padY=18, dw=w-padX*2, dh=h-padY*2, bw=dw/data.length*0.55;
+    let bars=&#x27;&#x27;, lbl=&#x27;&#x27;;
+    data.forEach((v,i)=&gt;{
+      const x=padX+i*(dw/data.length)+(dw/data.length-bw)/2, bh=(v/maxY)*dh;
+      bars+=`&lt;rect x=&quot;${x}&quot; y=&quot;${padY+dh-bh}&quot; width=&quot;${bw}&quot; height=&quot;${bh}&quot; rx=&quot;4&quot; fill=&quot;${color}&quot; opacity=&quot;0.85&quot;/&gt;`;
+      bars+=`&lt;text x=&quot;${x+bw/2}&quot; y=&quot;${padY+dh-bh-6}&quot; fill=&quot;#eef5ff&quot; font-size=&quot;11&quot; font-weight=&quot;700&quot; text-anchor=&quot;middle&quot;&gt;${fmt(v)}&lt;/text&gt;`;
+      lbl+=`&lt;text x=&quot;${x+bw/2}&quot; y=&quot;${h-3}&quot; fill=&quot;#8fa4bd&quot; font-size=&quot;10.5&quot; text-anchor=&quot;middle&quot;&gt;${labels[i]}&lt;/text&gt;`;
+    });
+    $(id).innerHTML=`&lt;svg viewBox=&quot;0 0 ${w} ${h}&quot; width=&quot;100%&quot; height=&quot;100%&quot; preserveAspectRatio=&quot;none&quot;&gt;${bars}${lbl}&lt;/svg&gt;`;
+  }
+  // 막대별 색상 지정 + 마지막 막대 위에 연말추정 점선/라벨
+  function barChartColored(id, data, labels, colors, projVal) {
+    const maxY=Math.max(...data, projVal||0)*1.22, w=600, h=215, padX=30, padY=22, dw=w-padX*2, dh=h-padY*2, bw=dw/data.length*0.5;
+    const ys=v=&gt;padY+dh-(v/maxY)*dh;
+    let bars=&#x27;&#x27;, lbl=&#x27;&#x27;;
+    data.forEach((v,i)=&gt;{
+      const x=padX+i*(dw/data.length)+(dw/data.length-bw)/2, bh=(v/maxY)*dh;
+      bars+=`&lt;rect x=&quot;${x}&quot; y=&quot;${padY+dh-bh}&quot; width=&quot;${bw}&quot; height=&quot;${bh}&quot; rx=&quot;4&quot; fill=&quot;${colors[i]}&quot; opacity=&quot;0.88&quot;/&gt;`;
+      bars+=`&lt;text x=&quot;${x+bw/2}&quot; y=&quot;${padY+dh-bh-6}&quot; fill=&quot;#eef5ff&quot; font-size=&quot;11&quot; font-weight=&quot;700&quot; text-anchor=&quot;middle&quot;&gt;${fmt(v)}&lt;/text&gt;`;
+      lbl+=`&lt;text x=&quot;${x+bw/2}&quot; y=&quot;${h-3}&quot; fill=&quot;#8fa4bd&quot; font-size=&quot;10.5&quot; text-anchor=&quot;middle&quot;&gt;${labels[i]}&lt;/text&gt;`;
+    });
+    // 연말 추정: 마지막(올해) 막대 위에 점선 + 라벨
+    if(projVal){
+      const li = data.length-1;
+      const cx = padX + li*(dw/data.length) + (dw/data.length)/2;
+      const py = ys(projVal);
+      const x0 = padX + li*(dw/data.length) + (dw/data.length-bw)/2 - 6;
+      bars+=`&lt;line x1=&quot;${x0}&quot; y1=&quot;${py}&quot; x2=&quot;${x0+bw+12}&quot; y2=&quot;${py}&quot; stroke=&quot;#ff6969&quot; stroke-width=&quot;2&quot; stroke-dasharray=&quot;5,4&quot;/&gt;`;
+      bars+=`&lt;text x=&quot;${cx}&quot; y=&quot;${py-7}&quot; fill=&quot;#ff8f7a&quot; font-size=&quot;11&quot; font-weight=&quot;800&quot; text-anchor=&quot;middle&quot;&gt;연말추정 ${fmt(projVal)}&lt;/text&gt;`;
+    }
+    $(id).innerHTML=`&lt;svg viewBox=&quot;0 0 ${w} ${h}&quot; width=&quot;100%&quot; height=&quot;100%&quot; preserveAspectRatio=&quot;none&quot;&gt;${bars}${lbl}&lt;/svg&gt;`;
+  }
+  function comboChart(id, bars, line, maxY, labels) {
+    const w=600, h=215, padX=30, padY=22, dw=w-padX*2, dh=h-padY*2, slot=dw/bars.data.length, bw=slot*0.5;
+    const ys=v=&gt;padY+dh-(v/maxY)*dh;
+    let el=&#x27;&#x27;, lbl=&#x27;&#x27;;
+    bars.data.forEach((v,i)=&gt;{
+      const x=padX+i*slot+(slot-bw)/2, bh=(v/maxY)*dh;
+      el+=`&lt;rect x=&quot;${x}&quot; y=&quot;${padY+dh-bh}&quot; width=&quot;${bw}&quot; height=&quot;${bh}&quot; rx=&quot;4&quot; fill=&quot;${bars.color}&quot; opacity=&quot;0.6&quot;/&gt;`;
+      el+=`&lt;text x=&quot;${x+bw/2}&quot; y=&quot;${padY+dh-bh-5}&quot; fill=&quot;#a9bdd6&quot; font-size=&quot;10&quot; font-weight=&quot;700&quot; text-anchor=&quot;middle&quot;&gt;${v}&lt;/text&gt;`;
+      lbl+=`&lt;text x=&quot;${x+bw/2}&quot; y=&quot;${h-3}&quot; fill=&quot;#8fa4bd&quot; font-size=&quot;10.5&quot; text-anchor=&quot;middle&quot;&gt;${labels[i]}&lt;/text&gt;`;
+    });
+    let d=&#x27;&#x27;, dots=&#x27;&#x27;, vt=&#x27;&#x27;;
+    line.data.forEach((v,i)=&gt;{
+      const cx=padX+i*slot+slot/2, cy=ys(v*line.scale);
+      d+=(d?&#x27; L&#x27;:&#x27;M&#x27;)+` ${cx} ${cy}`;
+      dots+=`&lt;circle cx=&quot;${cx}&quot; cy=&quot;${cy}&quot; r=&quot;3.5&quot; fill=&quot;${line.color}&quot; stroke=&quot;#0d1f1d&quot; stroke-width=&quot;2&quot;/&gt;`;
+      vt+=`&lt;text x=&quot;${cx}&quot; y=&quot;${cy-9}&quot; fill=&quot;${line.color}&quot; font-size=&quot;10&quot; font-weight=&quot;800&quot; text-anchor=&quot;middle&quot;&gt;${line.lab[i]}&lt;/text&gt;`;
+    });
+    el+=`&lt;path d=&quot;${d}&quot; stroke=&quot;${line.color}&quot; stroke-width=&quot;3&quot; fill=&quot;none&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot;/&gt;`+dots+vt;
+    $(id).innerHTML=`&lt;svg viewBox=&quot;0 0 ${w} ${h}&quot; width=&quot;100%&quot; height=&quot;100%&quot; preserveAspectRatio=&quot;none&quot;&gt;${el}${lbl}&lt;/svg&gt;`;
+  }
+  function donutChart(id, segs, centerLabel) {
+    const w=560, h=210, cx=120, cy=105, R=76, r=45;
+    const total=segs.reduce((s,x)=&gt;s+x.v,0);
+    let a0=-Math.PI/2, paths=&#x27;&#x27;, pcts=&#x27;&#x27;;
+    segs.forEach(s=&gt;{
+      const frac=s.v/total, a1=a0+frac*2*Math.PI-0.02, large=frac&gt;0.5?1:0;
+      const x0=cx+R*Math.cos(a0), y0=cy+R*Math.sin(a0), x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
+      const xi1=cx+r*Math.cos(a1), yi1=cy+r*Math.sin(a1), xi0=cx+r*Math.cos(a0), yi0=cy+r*Math.sin(a0);
+      paths+=`&lt;path d=&quot;M ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} L ${xi1} ${yi1} A ${r} ${r} 0 ${large} 0 ${xi0} ${yi0} Z&quot; fill=&quot;${s.c}&quot; opacity=&quot;0.92&quot;/&gt;`;
+      const am=(a0+a1)/2;
+      pcts+=`&lt;text x=&quot;${cx+(R+17)*Math.cos(am)}&quot; y=&quot;${cy+(R+17)*Math.sin(am)+4}&quot; fill=&quot;#eef5ff&quot; font-size=&quot;12.5&quot; font-weight=&quot;800&quot; text-anchor=&quot;middle&quot;&gt;${Math.round(frac*100)}%&lt;/text&gt;`;
+      a0=a1+0.02;
+    });
+    let leg=&#x27;&#x27;, ly0=52;
+    segs.forEach(s=&gt;{
+      leg+=`&lt;rect x=&quot;285&quot; y=&quot;${ly0-11}&quot; width=&quot;13&quot; height=&quot;13&quot; rx=&quot;3&quot; fill=&quot;${s.c}&quot;/&gt;`;
+      leg+=`&lt;text x=&quot;308&quot; y=&quot;${ly0}&quot; fill=&quot;#eef5ff&quot; font-size=&quot;14&quot; font-weight=&quot;700&quot;&gt;${s.n}&lt;/text&gt;`;
+      leg+=`&lt;text x=&quot;545&quot; y=&quot;${ly0}&quot; fill=&quot;#8fa4bd&quot; font-size=&quot;13&quot; text-anchor=&quot;end&quot;&gt;${fmt(s.v)}억 · ${Math.round(s.v/total*100)}%&lt;/text&gt;`;
+      ly0+=34;
+    });
+    const center=`&lt;text x=&quot;${cx}&quot; y=&quot;${cy-6}&quot; fill=&quot;#8fa4bd&quot; font-size=&quot;12&quot; font-weight=&quot;700&quot; text-anchor=&quot;middle&quot;&gt;${centerLabel}&lt;/text&gt;
+                  &lt;text x=&quot;${cx}&quot; y=&quot;${cy+16}&quot; fill=&quot;#eef5ff&quot; font-size=&quot;17&quot; font-weight=&quot;800&quot; text-anchor=&quot;middle&quot;&gt;${fmt(total)}억&lt;/text&gt;`;
+    $(id).innerHTML=`&lt;svg viewBox=&quot;0 0 ${w} ${h}&quot; width=&quot;100%&quot; height=&quot;100%&quot;&gt;${paths}${pcts}${center}${leg}&lt;/svg&gt;`;
+  }
+
+  /* ══════════ 네비게이션 ══════════ */
+  const SUBS = {
+    1:[{id:&#x27;1-1&#x27;,name:&#x27;1.1 입찰관리&#x27;},{id:&#x27;1-2&#x27;,name:&#x27;1.2 수주 건전성&#x27;}],
+    2:[{id:&#x27;2-1&#x27;,name:&#x27;2.1 잔고 적정성&#x27;},{id:&#x27;2-2&#x27;,name:&#x27;2.2 잔고 추이 전망&#x27;}],
+    3:[{id:&#x27;3-1&#x27;,name:&#x27;3.1 초기분양 감지&#x27;},{id:&#x27;3-2&#x27;,name:&#x27;3.2 PF 전이 리스크&#x27;}],
+  };
+  function selectCat(c){
+    document.querySelectorAll(&#x27;.cat-tab&#x27;).forEach((el,i)=&gt;el.classList.toggle(&#x27;active&#x27;,i===c-1));
+    const box=$(&#x27;subtabs&#x27;); box.innerHTML=&#x27;&#x27;;
+    SUBS[c].forEach(s=&gt;{ const b=document.createElement(&#x27;div&#x27;); b.className=&#x27;sub-tab&#x27;; b.textContent=s.name; b.id=&#x27;tab-&#x27;+s.id; b.onclick=()=&gt;selectSub(s.id); box.appendChild(b); });
+    selectSub(SUBS[c][0].id);
+  }
+  function selectSub(id){
+    document.querySelectorAll(&#x27;.sub-tab&#x27;).forEach(el=&gt;el.classList.toggle(&#x27;active&#x27;,el.id===&#x27;tab-&#x27;+id));
+    document.querySelectorAll(&#x27;.view&#x27;).forEach(el=&gt;el.classList.toggle(&#x27;on&#x27;,el.id===&#x27;v-&#x27;+id));
+  }
+
+  /* ══════════ 렌더링 (DATA → 화면) ══════════ */
+  function render(){
+    const D=DATA, mm=D.기준월;
+    const M_ALL=[&#x27;1월&#x27;,&#x27;2월&#x27;,&#x27;3월&#x27;,&#x27;4월&#x27;,&#x27;5월&#x27;,&#x27;6월&#x27;,&#x27;7월&#x27;,&#x27;8월&#x27;,&#x27;9월&#x27;,&#x27;10월&#x27;,&#x27;11월&#x27;,&#x27;12월&#x27;];
+    const M_ACT=M_ALL.slice(0,mm);
+    $(&#x27;hd-date&#x27;).textContent = `${D.기준연도}년 ${mm}월 마감 기준`;
+    $(&#x27;hd-title&#x27;).textContent = D.헤더제목 || &#x27;01 수주 — 선행지표 대시보드&#x27;;
+    $(&#x27;hd-sub&#x27;).textContent = &#x27;| &#x27; + (D.헤더부제 || &#x27;&#x27;);
+    [1,2,3].forEach(i=&gt;{ $(&#x27;cdesc-&#x27;+i).textContent = (D.대분류설명&amp;&amp;D.대분류설명[i])||&#x27;&#x27;; });
+
+    /* ── 1.1 입찰 ── */
+    const B=D.입찰;
+    const 참여=B.월별참여.reduce((a,b)=&gt;a+b,0), 성공=B.수주건수_인프라+B.수주건수_건축;
+    const 전환율=B.누계전환율[B.누계전환율.length-1];
+    $(&#x27;bid-sub&#x27;).textContent=`${mm}월 누계 | ${B.부제||&#x27;&#x27;}`;
+    setBadge(&#x27;bid-badge&#x27;, B.상태, B.상태===&#x27;ok&#x27;?&#x27;정상&#x27;:B.상태===&#x27;warn&#x27;?&#x27;주의&#x27;:&#x27;경보&#x27;);
+    $(&#x27;pnl-bid&#x27;).style.borderTop=&#x27;5px solid var(--&#x27;+(B.상태===&#x27;ok&#x27;?&#x27;actual&#x27;:B.상태===&#x27;warn&#x27;?&#x27;amber&#x27;:&#x27;miss&#x27;)+&#x27;)&#x27;;
+    $(&#x27;bid-n1&#x27;).textContent=참여+&#x27;건&#x27;;
+    $(&#x27;bid-n2&#x27;).innerHTML=`${성공}건 &lt;small&gt;인프라${B.수주건수_인프라}·건축${B.수주건수_건축}&lt;/small&gt;`;
+    $(&#x27;bid-n3&#x27;).textContent=전환율+&#x27;%&#x27;;
+    $(&#x27;bid-n4&#x27;).textContent=B.전년동기_전환율+&#x27;%&#x27;;
+    setMsg(&#x27;bid-msg&#x27;, B.상태, `&lt;strong&gt;[${B.상태===&#x27;ok&#x27;?&#x27;정상&#x27;:&#x27;주의&#x27;}]&lt;/strong&gt; ${B.상태문구}`);
+    const 성공합=B.성공현장.reduce((a,x)=&gt;a+x.금액,0);
+    $(&#x27;bid-list-title&#x27;).textContent=`금년 수주 성공 현장 (${성공}건 · ${fmt(성공합)}억)`;
+    $(&#x27;bid-list&#x27;).innerHTML=B.성공현장.map(x=&gt;taskItem(x.상태,x.이름,fmt(x.금액)+&#x27;억&#x27;,x.상태===&#x27;done&#x27;?&#x27;green&#x27;:&#x27;&#x27;)).join(&#x27;&#x27;);
+    comboChart(&#x27;svg-bid&#x27;, {data:B.월별참여,color:&#x27;#7e93ab&#x27;},
+      {data:B.누계전환율, scale:14, color:&#x27;#8cb269&#x27;, lab:B.누계전환율.map(v=&gt;v+&#x27;%&#x27;)},
+      Math.max(...B.월별참여)*1.35, M_ACT);
+
+    /* 파이프라인 — 과거 실적 + 연말 착지 전망 */
+    const P=D.파이프라인;
+    setBadge(&#x27;pipe-badge&#x27;, P.상태, P.상태===&#x27;ok&#x27;?&#x27;정상&#x27;:P.상태===&#x27;warn&#x27;?&#x27;주의&#x27;:&#x27;경보&#x27;);
+    $(&#x27;pipe-sub&#x27;).textContent=P.부제||&#x27;&#x27;; $(&#x27;pipe-note&#x27;).textContent=P.하단주석||&#x27;&#x27;;
+    $(&#x27;pipe-n1&#x27;).innerHTML=`${P.올해_수주}건 &lt;small&gt;/ 참여 ${P.올해_참여}건&lt;/small&gt;`;
+    $(&#x27;pipe-n2&#x27;).textContent=fmt(P.올해_수주액)+&#x27;억&#x27;;
+    $(&#x27;pipe-n3&#x27;).innerHTML=`${P.연말추정_수주}건 &lt;small&gt;${fmt(P.연말추정_수주액)}억&lt;/small&gt;`;
+    $(&#x27;pipe-n4&#x27;).textContent=fmt(P.과거평균_수주액)+&#x27;억&#x27;;
+    setMsg(&#x27;pipe-msg&#x27;, P.상태, `&lt;strong&gt;[${P.상태===&#x27;ok&#x27;?&#x27;정상&#x27;:P.상태===&#x27;warn&#x27;?&#x27;주의&#x27;:&#x27;경보&#x27;}]&lt;/strong&gt; ${P.상태문구}`);
+    // 차트: 과거3년 + 올해누계 + 연말추정 (막대 + 추정점선)
+    const pipeLabels = [...P.과거실적.map(x=&gt;x.연도), &#x27;26년&#x27;];
+    const pipeVals = [...P.과거실적.map(x=&gt;x.수주액), P.올해_수주액];
+    const pipeColors = [...P.과거실적.map(()=&gt; &#x27;#7e93ab&#x27;), &#x27;#ffad42&#x27;];
+    barChartColored(&#x27;svg-pipe&#x27;, pipeVals, pipeLabels, pipeColors, P.연말추정_수주액);
+    $(&#x27;pnl-pipe&#x27;).style.borderTop=&#x27;5px solid var(--amber)&#x27;;
+
+    /* ── 1.2 SPI + MIX ── */
+    const S=D.SPI, cur=S.분기값[S.분기값.length-1], prev=S.분기값[S.분기값.length-2];
+    const spiLv = cur&lt;S.경보선?&#x27;danger&#x27;:cur&lt;=S.기준선+2?&#x27;warn&#x27;:&#x27;ok&#x27;;
+    setBadge(&#x27;spi-badge&#x27;, spiLv, spiLv===&#x27;ok&#x27;?&#x27;정상&#x27;:spiLv===&#x27;warn&#x27;?&#x27;기준선 근접&#x27;:&#x27;기준선 하회&#x27;);
+    $(&#x27;spi-sub&#x27;).textContent=S.부제||&#x27;&#x27;; $(&#x27;spi-note&#x27;).textContent=S.하단주석||&#x27;&#x27;;
+    $(&#x27;spi-l1&#x27;).textContent=S.분기라벨[S.분기라벨.length-1]+&#x27; SPI&#x27;;
+    $(&#x27;spi-n1&#x27;).textContent=cur+&#x27;점&#x27;;
+    $(&#x27;spi-n2&#x27;).textContent=(cur-prev&gt;=0?&#x27;+&#x27;:&#x27;&#x27;)+(cur-prev)+&#x27;점&#x27;;
+    $(&#x27;spi-n3&#x27;).textContent=S.기준선+&#x27;점&#x27;;
+    $(&#x27;spi-n4&#x27;).textContent=S.최저구성_이름+&#x27; &#x27;+S.최저구성_점수+&#x27;점&#x27;;
+    $(&#x27;spi-msg&#x27;).innerHTML=`&lt;strong&gt;[주의]&lt;/strong&gt; ${S.상태문구}`;
+    $(&#x27;spi-lg1&#x27;).textContent=`╌╌ 기준선(${S.기준선})`;
+    $(&#x27;spi-lg2&#x27;).textContent=`- - 경보선(${S.경보선})`;
+    lineChart(&#x27;svg-spi&#x27;,[
+      {data:S.분기값.map(()=&gt;S.기준선), color:&#x27;#7e93ab&#x27;, dash:&#x27;5,5&#x27;},
+      {data:S.분기값.map(()=&gt;S.경보선), color:&#x27;#ff6969&#x27;, dash:&#x27;4,4&#x27;},
+      {data:S.분기값, color:&#x27;#8cb269&#x27;, dots:true, width:3, vlab:true, lab:S.분기값.map(String)},
+    ], Math.max(...S.분기값)*1.2, S.분기라벨);
+
+    const X=D.MIX, mix계=X.토목+X.건축+X.주택;
+    $(&#x27;mix-sub&#x27;).textContent=X.라벨;
+    $(&#x27;mix-cmp-title&#x27;).textContent=X.비교제목||&#x27;&#x27;; $(&#x27;mix-note&#x27;).textContent=X.하단주석||&#x27;&#x27;;
+    $(&#x27;mix-n1&#x27;).textContent=fmt(mix계)+&#x27;억&#x27;;
+    $(&#x27;mix-n2&#x27;).textContent=Math.round(X.토목/mix계*100)+&#x27;%&#x27;;
+    $(&#x27;mix-n3&#x27;).textContent=Math.round(X.건축/mix계*100)+&#x27;%&#x27;;
+    $(&#x27;mix-n4&#x27;).textContent=Math.round(X.주택/mix계*100)+&#x27;%&#x27;;
+    donutChart(&#x27;svg-mixdonut&#x27;,[
+      {n:&#x27;토목(인프라)&#x27;,v:X.토목,c:&#x27;#8cb269&#x27;},{n:&#x27;건축&#x27;,v:X.건축,c:&#x27;#ffad42&#x27;},{n:&#x27;주택&#x27;,v:X.주택,c:&#x27;#7e93ab&#x27;},
+    ],&#x27;누계 계&#x27;);
+    $(&#x27;mix-bars&#x27;).innerHTML =
+      X.업계비교.map(g=&gt;`&lt;div class=&quot;hbar-row&quot;&gt;&lt;div class=&quot;hbar-name&quot;&gt;${g.이름}&lt;/div&gt;&lt;div class=&quot;hbar-track&quot;&gt;&lt;div class=&quot;hbar-fill&quot; style=&quot;width:${g.값}%;background:#7e93ab;&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;hbar-val&quot;&gt;${g.값}%&lt;/div&gt;&lt;/div&gt;`).join(&#x27;&#x27;)
+      + `&lt;div class=&quot;hbar-row&quot; style=&quot;margin-bottom:0;&quot;&gt;&lt;div class=&quot;hbar-name&quot; style=&quot;color:#ffd08f;&quot;&gt;당사&lt;/div&gt;&lt;div class=&quot;hbar-track&quot;&gt;&lt;div class=&quot;hbar-fill&quot; style=&quot;width:${D.MIX.당사_주택비중}%;background:#ffad42;&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;hbar-val&quot; style=&quot;color:#ffd08f;&quot;&gt;${D.MIX.당사_주택비중}%&lt;/div&gt;&lt;/div&gt;`;
+
+    /* ── 2.1 / 2.2 잔고 (부문 공통 렌더 함수) ── */
+    function renderBal(K, ids){
+      const 적정=K.목표매출*K.공사기간;
+      const 현재=K.월별잔고[K.월별잔고.length-1], 전월=K.월별잔고[K.월별잔고.length-2];
+      const 증감=현재-전월, 부족=적정-현재;
+      $(ids.sub).textContent=`목표매출 ${fmt(K.목표매출)}억 × 공사기간 ${K.공사기간}년 = 적정잔고 ${fmt(적정)}억`;
+      $(ids.n1).textContent=fmt(전월)+&#x27;억&#x27;;
+      $(ids.n2).textContent=(증감&gt;=0?&#x27;+&#x27;:&#x27;&#x27;)+fmt(증감)+&#x27;억&#x27;;
+      $(ids.n3).textContent=fmt(현재)+&#x27;억&#x27;;
+      if(부족&gt;0){
+        setBadge(ids.badge,&#x27;danger&#x27;,&#x27;부족&#x27;);
+        $(ids.pnl).style.borderTop=&#x27;5px solid var(--miss)&#x27;;
+        $(ids.b4).className=&#x27;num-box danger live&#x27;; $(ids.l4).textContent=&#x27;적정 대비 부족분&#x27;; $(ids.n4).textContent=fmt(부족)+&#x27;억&#x27;;
+        setMsg(ids.msg,&#x27;danger&#x27;,`&lt;strong&gt;[센서 경보]&lt;/strong&gt; `+T(K.경보문구,{적정:fmt(적정),비율:(현재/적정*100).toFixed(1),부족:fmt(부족),공사기간:K.공사기간}));
+      } else {
+        setBadge(ids.badge,&#x27;ok&#x27;,&#x27;충족&#x27;);
+        $(ids.pnl).style.borderTop=&#x27;5px solid var(--actual)&#x27;;
+        $(ids.b4).className=&#x27;num-box ok&#x27;; $(ids.l4).textContent=&#x27;적정 대비&#x27;; $(ids.n4).textContent=&#x27;+&#x27;+fmt(-부족)+&#x27;억&#x27;;
+        setMsg(ids.msg,&#x27;ok&#x27;,`&lt;strong&gt;[정상]&lt;/strong&gt; `+T(K.정상문구,{적정:fmt(적정),비율:(현재/적정*100).toFixed(1),부족:fmt(-부족),공사기간:K.공사기간}));
+      }
+      $(ids.lg).textContent=`╌╌ 적정 수주잔고(${fmt(적정)}억)`;
+      lineChart(ids.chart,[
+        {data:K.월별잔고.map(()=&gt;적정), color:&#x27;#7e93ab&#x27;, dash:&#x27;5,5&#x27;},
+        {data:K.월별잔고, color:&#x27;#8cb269&#x27;, dots:true, width:3, vlab:true},
+      ], 적정*1.15, M_ACT);
+      return {적정,현재};
+    }
+    function renderProj(K, ids, base){
+      /* 추정 궤적 자동 계산: 현재잔고 - 월기성 + 수주예정 */
+      const traj=[base.현재]; let bal=base.현재;
+      K.수주예정.forEach(nw=&gt;{ bal = bal - K.월평균기성 + nw; traj.push(bal); });
+      const 연말=traj[traj.length-1], 필요=Math.max(0, base.적정-연말);
+      const 수주합=K.수주예정.reduce((a,b)=&gt;a+b,0);
+      const lv = 필요&lt;=0?&#x27;ok&#x27;:필요&gt;=3000?&#x27;danger&#x27;:&#x27;warn&#x27;;
+      setBadge(ids.badge, lv, lv===&#x27;ok&#x27;?&#x27;적정 유지&#x27;:lv===&#x27;warn&#x27;?&#x27;연말 이탈 예상&#x27;:&#x27;이탈 확대&#x27;);
+      $(ids.pnl).style.borderTop=&#x27;5px solid var(--&#x27;+(lv===&#x27;ok&#x27;?&#x27;actual&#x27;:lv===&#x27;warn&#x27;?&#x27;amber&#x27;:&#x27;miss&#x27;)+&#x27;)&#x27;;
+      $(ids.sub).textContent=K.전망메모+` (월 기성 ${fmt(K.월평균기성)}억)`;
+      $(ids.l1).textContent=`현 잔고 (${mm}월)`;
+      $(ids.n1).textContent=fmt(base.현재)+&#x27;억&#x27;;
+      $(ids.n2).textContent=fmt(연말)+&#x27;억&#x27;;
+      $(ids.n3).textContent=fmt(필요)+&#x27;억&#x27;;
+      const vars = {수주합:fmt(수주합), 적정:fmt(base.적정), 필요:fmt(필요), 기성:fmt(K.월평균기성), 연말:fmt(연말)};
+      if (필요 &lt;= 0) {
+        setMsg(ids.msg, &#x27;ok&#x27;, `&lt;strong&gt;[정상]&lt;/strong&gt; ${T(K.전망정상문구||K.전망문구, vars)}`);
+        $(ids.b2).className=&#x27;num-box ok&#x27;; $(ids.b3).className=&#x27;num-box ok&#x27;;
+      } else {
+        setMsg(ids.msg, lv, `&lt;strong&gt;[${lv===&#x27;danger&#x27;?&#x27;센서 경보&#x27;:&#x27;주의&#x27;}]&lt;/strong&gt; ${T(K.전망문구, vars)}`);
+        $(ids.b2).className=&#x27;num-box &#x27;+(lv===&#x27;danger&#x27;?&#x27;danger&#x27;:&#x27;warn&#x27;);
+        $(ids.b3).className=&#x27;num-box &#x27;+(lv===&#x27;danger&#x27;?&#x27;danger live&#x27;:&#x27;warn&#x27;);
+      }
+      /* 차트: 실적(1~기준월) + 추정(기준월~12월) */
+      const act=[...K.월별잔고, ...Array(12-mm).fill(null)];
+      const proj=Array(12).fill(null);
+      traj.forEach((v,i)=&gt;{ proj[mm-1+i]=v; });
+      lineChart(ids.chart,[
+        {data:Array(12).fill(base.적정), color:&#x27;#7e93ab&#x27;, dash:&#x27;5,5&#x27;},
+        {data:proj, color:&#x27;#ff6969&#x27;, dash:&#x27;4,4&#x27;, dots:true, vlab:true, below:true, vskip:1},
+        {data:act, color:&#x27;#8cb269&#x27;, dots:true, width:3, vlab:true},
+      ], base.적정*1.15, M_ALL);
+    }
+    const bi=renderBal(D.잔고_인프라,{sub:&#x27;bali-sub&#x27;,badge:&#x27;bali-badge&#x27;,pnl:&#x27;pnl-bal-i&#x27;,n1:&#x27;bali-n1&#x27;,n2:&#x27;bali-n2&#x27;,n3:&#x27;bali-n3&#x27;,b4:&#x27;bali-b4&#x27;,l4:&#x27;bali-l4&#x27;,n4:&#x27;bali-n4&#x27;,msg:&#x27;bali-msg&#x27;,lg:&#x27;bali-lg&#x27;,chart:&#x27;svg-bal-infra&#x27;});
+    const ba=renderBal(D.잔고_건축,{sub:&#x27;bala-sub&#x27;,badge:&#x27;bala-badge&#x27;,pnl:&#x27;pnl-bal-a&#x27;,n1:&#x27;bala-n1&#x27;,n2:&#x27;bala-n2&#x27;,n3:&#x27;bala-n3&#x27;,b4:&#x27;bala-b4&#x27;,l4:&#x27;bala-l4&#x27;,n4:&#x27;bala-n4&#x27;,msg:&#x27;bala-msg&#x27;,lg:&#x27;bala-lg&#x27;,chart:&#x27;svg-bal-arch&#x27;});
+    renderProj(D.잔고_인프라,{badge:&#x27;proji-badge&#x27;,pnl:&#x27;pnl-proj-i&#x27;,sub:&#x27;proji-sub&#x27;,l1:&#x27;proji-l1&#x27;,n1:&#x27;proji-n1&#x27;,n2:&#x27;proji-n2&#x27;,n3:&#x27;proji-n3&#x27;,b2:&#x27;proji-b2&#x27;,b3:&#x27;proji-b3&#x27;,msg:&#x27;proji-msg&#x27;,chart:&#x27;svg-proj-infra&#x27;}, bi);
+    renderProj(D.잔고_건축,{badge:&#x27;proja-badge&#x27;,pnl:&#x27;pnl-proj-a&#x27;,sub:&#x27;proja-sub&#x27;,l1:&#x27;proja-l1&#x27;,n1:&#x27;proja-n1&#x27;,n2:&#x27;proja-n2&#x27;,n3:&#x27;proja-n3&#x27;,b2:&#x27;proja-b2&#x27;,b3:&#x27;proja-b3&#x27;,msg:&#x27;proja-msg&#x27;,chart:&#x27;svg-proj-arch&#x27;}, ba);
+
+    /* ── 3.1 분양 (클릭형) ── */
+    const F=D.분양;
+    // 각 현장 판정: 세부 구분 중 최악(갭 최대)으로 현장 상태 결정
+    function segStatus(seg){
+      const 분양률 = Math.round(seg.계약/seg.총세대*100);
+      if(seg.EXIT==null) return {분양률, lv: 분양률&gt;=100?&#x27;ok&#x27;:(분양률&gt;=70?&#x27;warn&#x27;:&#x27;danger&#x27;), 갭:null};
+      const 갭 = seg.EXIT - 분양률;
+      let lv = &#x27;변수&#x27;;
+      if(갭&lt;=F.주의기준_갭) lv=&#x27;ok&#x27;;
+      else if(갭&lt;F.경보기준_갭) lv=&#x27;warn&#x27;;
+      else lv=&#x27;danger&#x27;;
+      return {분양률, lv, 갭};
+    }
+    function siteStatus(site){
+      let worst=&#x27;ok&#x27;; const rank={ok:0,warn:1,danger:2};
+      site.세부.forEach(seg=&gt;{ const s=segStatus(seg); if(rank[s.lv]&gt;rank[worst]) worst=s.lv; });
+      return worst;
+    }
+    const 경보수 = F.현장.filter(s=&gt;siteStatus(s)===&#x27;danger&#x27;).length;
+    const 주의수 = F.현장.filter(s=&gt;siteStatus(s)===&#x27;warn&#x27;).length;
+    $(&#x27;sale-sub&#x27;).textContent = F.부제||&#x27;&#x27;;
+    $(&#x27;sale-note&#x27;).textContent = F.하단주석||&#x27;&#x27;;
+    setBadge(&#x27;sale-badge&#x27;, 경보수?&#x27;danger&#x27;:(주의수?&#x27;warn&#x27;:&#x27;ok&#x27;), 경보수?`경보 ${경보수}개`:(주의수?`주의 ${주의수}개`:&#x27;전 현장 정상&#x27;));
+    setMsg(&#x27;sale-msg&#x27;, 경보수?&#x27;danger&#x27;:(주의수?&#x27;warn&#x27;:&#x27;ok&#x27;),
+      `&lt;strong&gt;[${경보수?&#x27;센서 경보&#x27;:(주의수?&#x27;주의&#x27;:&#x27;정상&#x27;)}]&lt;/strong&gt; 전 ${F.현장.length}개 현장 중 경보 ${경보수} · 주의 ${주의수} — EXIT 목표 미달 갭 30%p 이상은 경보`);
+
+    // 리스트 렌더
+    const badgeDot = {ok:&#x27;🟢&#x27;,warn:&#x27;🟡&#x27;,danger:&#x27;🚨&#x27;};
+    $(&#x27;sale-list&#x27;).innerHTML = F.현장.map((site,i)=&gt;{
+      const lv = siteStatus(site);
+      // 대표 분양률: 최악 구분의 분양률
+      let worstSeg=site.세부[0], worstRank=-1; const rank={ok:0,warn:1,danger:2};
+      site.세부.forEach(seg=&gt;{ const s=segStatus(seg); if(rank[s.lv]&gt;worstRank){worstRank=rank[s.lv];worstSeg=seg;} });
+      const 분양률 = Math.round(worstSeg.계약/worstSeg.총세대*100);
+      const clsMap={ok:&#x27;green&#x27;,warn:&#x27;amber&#x27;,danger:&#x27;red&#x27;}, stMap={ok:&#x27;done&#x27;,warn:&#x27;warn&#x27;,danger:&#x27;fail&#x27;};
+      const 구분표시 = site.세부.length&gt;1 ? ` &lt;span style=&quot;color:var(--sub);font-size:12px;&quot;&gt;(${site.세부.length}개 구분)&lt;/span&gt;` : &#x27;&#x27;;
+      return `&lt;div class=&quot;task-item ${stMap[lv]}&quot; style=&quot;cursor:pointer;&quot; onclick=&quot;selectSite(${i})&quot; id=&quot;site-${i}&quot;&gt;
+        &lt;div class=&quot;left&quot;&gt;${badgeDot[lv]} ${site.이름}${구분표시}&lt;/div&gt;
+        &lt;span class=&quot;amt ${clsMap[lv]}&quot;&gt;${분양률}%&lt;/span&gt;&lt;/div&gt;`;
+    }).join(&#x27;&#x27;);
+
+    // 상세 렌더
+    window.selectSite = function(i){
+      const site = F.현장[i];
+      document.querySelectorAll(&#x27;[id^=&quot;site-&quot;]&#x27;).forEach((el,idx)=&gt; el.style.outline = idx===i?&#x27;2px solid var(--amber)&#x27;:&#x27;none&#x27;);
+      const lv = siteStatus(site);
+      setBadge(&#x27;sd-badge&#x27;, lv, lv===&#x27;ok&#x27;?&#x27;정상&#x27;:lv===&#x27;warn&#x27;?&#x27;주의&#x27;:&#x27;경보&#x27;);
+      $(&#x27;pnl-saledetail&#x27;).style.borderTop = &#x27;5px solid var(--&#x27;+(lv===&#x27;ok&#x27;?&#x27;actual&#x27;:lv===&#x27;warn&#x27;?&#x27;amber&#x27;:&#x27;miss&#x27;)+&#x27;)&#x27;;
+      $(&#x27;sd-title&#x27;).textContent = site.이름;
+      $(&#x27;sd-sub&#x27;).textContent = site.세부.length&gt;1 ? `구분 ${site.세부.length}개 · 도급/PF는 현장 공통` : &#x27;&#x27;;
+      // 상단: 총도급 · PF · 총세대
+      const 총세대 = site.세부.reduce((a,s)=&gt;a+s.총세대,0);
+      const 총계약 = site.세부.reduce((a,s)=&gt;a+s.계약,0);
+      $(&#x27;sd-top&#x27;).innerHTML = `
+        &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;총 도급액&lt;/div&gt;&lt;div class=&quot;num-val&quot;&gt;${site.도급? fmt(site.도급)+&#x27;억&#x27;:&#x27;—&#x27;}&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;num-box ${site.PF&gt;0?&#x27;warn&#x27;:&#x27;&#x27;}&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;PF 잔액&lt;/div&gt;&lt;div class=&quot;num-val&quot;&gt;${site.PF&gt;0? fmt(site.PF)+&#x27;억&#x27;:&#x27;없음&#x27;}&lt;/div&gt;&lt;/div&gt;
+        &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;전체 분양률&lt;/div&gt;&lt;div class=&quot;num-val&quot;&gt;${Math.round(총계약/총세대*100)}% &lt;small&gt;${총계약}/${총세대}&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;`;
+      // 구분별 섹션 (세대 정보 + 도넛)
+      $(&#x27;sd-sections&#x27;).innerHTML = site.세부.map((seg,si)=&gt;{
+        const s = segStatus(seg);
+        const 잔여 = seg.총세대 - seg.계약;
+        const exitTxt = seg.EXIT표시 || (seg.EXIT!=null ? seg.EXIT+&#x27;%&#x27; : &#x27;—&#x27;);
+        const 갭Txt = s.갭!=null ? (s.갭&lt;=0?&#x27;목표 달성/초과&#x27;:`목표 대비 -${s.갭}%p`) : &#x27;전세(EXIT 없음)&#x27;;
+        const donutId = `sd-donut-${i}-${si}`;
+        return `&lt;div class=&quot;tracker-box&quot;&gt;
+          &lt;div class=&quot;tracker-title&quot;&gt;${badgeDot[s.lv]} ${seg.구분} — 분양률 ${s.분양률}% / EXIT ${exitTxt} · ${갭Txt}&lt;/div&gt;
+          &lt;div style=&quot;display:flex; gap:16px; align-items:center; flex-wrap:wrap;&quot;&gt;
+            &lt;div style=&quot;flex:1; min-width:180px;&quot;&gt;
+              &lt;div class=&quot;num-dashboard c3&quot; style=&quot;margin-bottom:0;&quot;&gt;
+                &lt;div class=&quot;num-box&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;총세대&lt;/div&gt;&lt;div class=&quot;num-val&quot;&gt;${seg.총세대}&lt;/div&gt;&lt;/div&gt;
+                &lt;div class=&quot;num-box ok&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;계약&lt;/div&gt;&lt;div class=&quot;num-val&quot;&gt;${seg.계약}&lt;/div&gt;&lt;/div&gt;
+                &lt;div class=&quot;num-box ${잔여&gt;0?&#x27;warn&#x27;:&#x27;&#x27;}&quot;&gt;&lt;div class=&quot;num-lbl&quot;&gt;잔여&lt;/div&gt;&lt;div class=&quot;num-val&quot;&gt;${잔여}&lt;/div&gt;&lt;/div&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div style=&quot;width:150px; height:150px;&quot; id=&quot;${donutId}&quot;&gt;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;`;
+      }).join(&#x27;&#x27;);
+      // 도넛 그리기
+      site.세부.forEach((seg,si)=&gt;{
+        const 잔여 = seg.총세대 - seg.계약;
+        saleDonut(`sd-donut-${i}-${si}`, seg.계약, 잔여);
+      });
+    };
+    // 세대 도넛 (계약 vs 잔여)
+    function saleDonut(id, done, rest){
+      const el=$(id); if(!el) return;
+      const total=done+rest, R=58, r=34, cx=75, cy=75;
+      const frac = total? done/total : 0;
+      const a0=-Math.PI/2, a1=a0+frac*2*Math.PI;
+      const large=frac&gt;0.5?1:0;
+      function arc(s,e,rad){ return `${cx+rad*Math.cos(s)} ${cy+rad*Math.sin(s)} A ${rad} ${rad} 0 ${(e-s)&gt;Math.PI?1:0} 1 ${cx+rad*Math.cos(e)} ${cy+rad*Math.sin(e)}`; }
+      let seg=&#x27;&#x27;;
+      if(frac&gt;0 &amp;&amp; frac&lt;1){
+        seg = `&lt;path d=&quot;M ${cx+R*Math.cos(a0)} ${cy+R*Math.sin(a0)} A ${R} ${R} 0 ${large} 1 ${cx+R*Math.cos(a1)} ${cy+R*Math.sin(a1)} L ${cx+r*Math.cos(a1)} ${cy+r*Math.sin(a1)} A ${r} ${r} 0 ${large} 0 ${cx+r*Math.cos(a0)} ${cy+r*Math.sin(a0)} Z&quot; fill=&quot;#8cb269&quot; opacity=&quot;0.92&quot;/&gt;`;
+        seg += `&lt;path d=&quot;M ${cx+R*Math.cos(a1)} ${cy+R*Math.sin(a1)} A ${R} ${R} 0 ${large?0:1} 1 ${cx+R*Math.cos(a0+2*Math.PI)} ${cy+R*Math.sin(a0+2*Math.PI)} L ${cx+r*Math.cos(a0+2*Math.PI)} ${cy+r*Math.sin(a0+2*Math.PI)} A ${r} ${r} 0 ${large?0:1} 0 ${cx+r*Math.cos(a1)} ${cy+r*Math.sin(a1)} Z&quot; fill=&quot;#ff6969&quot; opacity=&quot;0.55&quot;/&gt;`;
+      } else {
+        const c = frac&gt;=1 ? &#x27;#8cb269&#x27; : &#x27;#ff6969&#x27;;
+        seg = `&lt;circle cx=&quot;${cx}&quot; cy=&quot;${cy}&quot; r=&quot;${(R+r)/2}&quot; fill=&quot;none&quot; stroke=&quot;${c}&quot; stroke-width=&quot;${R-r}&quot; opacity=&quot;0.85&quot;/&gt;`;
+      }
+      el.innerHTML = `&lt;svg viewBox=&quot;0 0 150 150&quot; width=&quot;100%&quot; height=&quot;100%&quot;&gt;${seg}
+        &lt;text x=&quot;${cx}&quot; y=&quot;${cy-4}&quot; fill=&quot;#eef5ff&quot; font-size=&quot;19&quot; font-weight=&quot;800&quot; text-anchor=&quot;middle&quot;&gt;${Math.round(frac*100)}%&lt;/text&gt;
+        &lt;text x=&quot;${cx}&quot; y=&quot;${cy+14}&quot; fill=&quot;#8fa4bd&quot; font-size=&quot;10&quot; text-anchor=&quot;middle&quot;&gt;계약 ${done}&lt;/text&gt;&lt;/svg&gt;`;
+    }
+    // 최초 진입 시 첫 경보 현장(없으면 0번) 자동 선택
+    (function(){
+      let idx = F.현장.findIndex(s=&gt;siteStatus(s)===&#x27;danger&#x27;);
+      if(idx&lt;0) idx=0;
+      selectSite(idx);
+    })();
+
+    /* ── 3.2 PF ── */
+    const PF=D.PF;
+    const 위험건=PF.목록.filter(x=&gt;x.상태!==&#x27;done&#x27;).length;
+    setBadge(&#x27;pf-badge&#x27;,&#x27;warn&#x27;,`6개월 내 ${위험건}건`);
+    $(&#x27;pf-sub&#x27;).textContent=PF.부제||&#x27;&#x27;;
+    $(&#x27;pf-list&#x27;).innerHTML=PF.목록.map(x=&gt;taskItem(x.상태,x.이름,fmt(x.금액)+&#x27;억&#x27;,x.상태===&#x27;fail&#x27;?&#x27;red&#x27;:x.상태===&#x27;warn&#x27;?&#x27;amber&#x27;:x.상태===&#x27;done&#x27;?&#x27;green&#x27;:&#x27;&#x27;)).join(&#x27;&#x27;);
+    $(&#x27;pf-msg&#x27;).innerHTML=`&lt;strong&gt;[주의]&lt;/strong&gt; ${PF.상태문구}`;
+    barChart(&#x27;svg-pf&#x27;, PF.분기만기_금액, PF.분기만기_라벨, &#x27;#ffad42&#x27;);
+
+    const C=D.차입, 현의존=C.월별의존도[C.월별의존도.length-1];
+    setBadge(&#x27;debt-badge&#x27;, C.전이시_의존도&gt;=C.경보선?&#x27;danger&#x27;:&#x27;danger&#x27;, `스트레스 ${C.전이시_의존도}%`);
+    $(&#x27;debt-n1&#x27;).textContent=현의존+&#x27;%&#x27;;
+    $(&#x27;debt-n2&#x27;).textContent=fmt(C.위험보증액)+&#x27;억&#x27;;
+    $(&#x27;debt-n3&#x27;).textContent=C.전이시_의존도+&#x27;%&#x27;;
+    $(&#x27;debt-l4&#x27;).textContent=`경보선(${C.경보선}%)까지`;
+    $(&#x27;debt-n4&#x27;).textContent=(C.경보선-C.전이시_의존도)+&#x27;%p&#x27;;
+    $(&#x27;debt-sub&#x27;).textContent=C.부제||&#x27;&#x27;;
+    $(&#x27;debt-msg&#x27;).innerHTML=`&lt;strong&gt;[스트레스 결과]&lt;/strong&gt; `+T(C.문구,{현재:현의존,전이:C.전이시_의존도,목표:C.목표선,경보:C.경보선});
+    $(&#x27;debt-link&#x27;).textContent=C.연계문구||&#x27;&#x27;;
+    $(&#x27;debt-lg&#x27;).textContent=`╌╌ 경보선(${C.경보선}%)`;
+    const dn=C.월별의존도.length, total=dn+C.스트레스경로.length;
+    const dLabels=[...M_ALL.slice(0,dn), ...C.스트레스경로.map((_,i)=&gt;&#x27;전이T+&#x27;+(i+1))];
+    const dAct=[...C.월별의존도, ...Array(C.스트레스경로.length).fill(null)];
+    const dStr=Array(total).fill(null); dStr[dn-1]=현의존; C.스트레스경로.forEach((v,i)=&gt;dStr[dn+i]=v);
+    lineChart(&#x27;svg-debt&#x27;,[
+      {data:Array(total).fill(C.경보선), color:&#x27;#7e93ab&#x27;, dash:&#x27;5,5&#x27;},
+      {data:dAct, color:&#x27;#8cb269&#x27;, dots:true, width:3, vlab:true, lab:dAct.map(v=&gt;v===null?&#x27;&#x27;:v+&#x27;%&#x27;)},
+      {data:dStr, color:&#x27;#ff6969&#x27;, dash:&#x27;4,4&#x27;, dots:true, vlab:true, below:true, vskip:1, lab:dStr.map(v=&gt;v===null?&#x27;&#x27;:v+&#x27;%&#x27;)},
+    ], C.경보선*1.2, dLabels);
+
+    /* ── 대분류 상태 자동 집계 ── */
+    setCatStatus(&#x27;cst-1&#x27;, spiLv===&#x27;danger&#x27;||B.상태===&#x27;danger&#x27;?&#x27;danger&#x27;:&#x27;warn&#x27;, spiLv!==&#x27;ok&#x27;||P.상태!==&#x27;ok&#x27;?&#x27;주의&#x27;:&#x27;정상&#x27;);
+    const balDanger = (bi.적정-bi.현재&gt;0)||(ba.적정-ba.현재&gt;0);
+    setCatStatus(&#x27;cst-2&#x27;, balDanger?&#x27;danger&#x27;:&#x27;ok&#x27;, balDanger?&#x27;경보 1&#x27;:&#x27;정상&#x27;);
+    // 3.1 분양: 경보 현장 수로 대분류3 상태 집계 (siteStatus 재사용)
+    (function(){
+      const rank={ok:0,warn:1,danger:2};
+      function segLv(seg){
+        const 분양률=Math.round(seg.계약/seg.총세대*100);
+        if(seg.EXIT==null) return 분양률&gt;=100?&#x27;ok&#x27;:(분양률&gt;=70?&#x27;warn&#x27;:&#x27;danger&#x27;);
+        const 갭=seg.EXIT-분양률;
+        return 갭&lt;=D.분양.주의기준_갭?&#x27;ok&#x27;:(갭&lt;D.분양.경보기준_갭?&#x27;warn&#x27;:&#x27;danger&#x27;);
+      }
+      let 경보=0, 주의=0;
+      D.분양.현장.forEach(site=&gt;{
+        let w=&#x27;ok&#x27;; site.세부.forEach(seg=&gt;{ const l=segLv(seg); if(rank[l]&gt;rank[w])w=l; });
+        if(w===&#x27;danger&#x27;)경보++; else if(w===&#x27;warn&#x27;)주의++;
+      });
+      setCatStatus(&#x27;cst-3&#x27;, 경보?&#x27;danger&#x27;:(주의?&#x27;warn&#x27;:&#x27;ok&#x27;), 경보?(&#x27;경보 &#x27;+경보):(주의?(&#x27;주의 &#x27;+주의):&#x27;정상&#x27;));
+    })();
+  }
+
+  // DATA 로드 보장 후 렌더 (외부 data.js 로딩 타이밍 방어)
+  function initDashboard(){
+    if(typeof DATA===&#x27;undefined&#x27;){ setTimeout(initDashboard, 50); return; }
+    render();
+    selectCat(1);
+  }
+  if(document.readyState===&#x27;loading&#x27;){
+    document.addEventListener(&#x27;DOMContentLoaded&#x27;, initDashboard);
+  } else {
+    initDashboard();
+  }
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+" title="수주"></iframe></div>
+  <!-- 공정: 범용 렌더 -->
+  <div class="dv" id="stage-2"><div id="mount-2"></div></div>
+  <!-- 자금/이익/운영: 다음 턴에 추가 -->
+  <div class="dv" id="stage-3"><div id="mount-3"></div></div>
+  <div class="dv" id="stage-4"><div id="mount-4"></div></div>
+  <div class="dv" id="stage-5"><div id="mount-5"></div></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   02 공정 — 선행지표 대시보드 데이터
+   ▶ 매월/수시 이 파일의 숫자·문장만 수정 → 저장 → F5
+   ◆ 따옴표 안 내용만 수정.  상태: ok(초록)/warn(노랑)/danger(빨강)
+   ◆ 리스트 상태: done(초록)/warn(노랑)/fail(빨강)
+   ─────────────────────────────────────────────
+   구조: 대분류 3개 × 중분류 2개 = 6화면. 각 화면은 카드 1~2개.
+   카드 종류(type): metrics(숫자박스+메시지+차트) / list(리스트) 조합 자유
+═══════════════════════════════════════════════════════════════ */
+
+const GONGJEONG = {
+  meta: {
+    제목: "02 공정 — 선행지표 대시보드",
+    부제: "마일스톤·안전·품질 단계의 공정 리스크 조기 감지 (수치는 예시)",
+    기준: "2026년 6월 마감 기준",
+  },
+
+  대분류: [
+    { name:"공정·공기 관리", desc:"마일스톤 준수 → 공기지연·돌관 리스크 조기 감지", status:{lv:"warn",txt:"주의 1"} },
+    { name:"안전관리",      desc:"아차사고(선행) → 중대재해(후행) 전이 차단", status:{lv:"danger",txt:"경보 1"} },
+    { name:"하도급 리스크 관리", desc:"하도급 수행 리스크·협력업체 재무위험 비율 모니터링", status:{lv:"danger",txt:"경보 1"} },
+  ],
+
+  중분류: {
+    "1": [
+      { id:"1-1", name:"1.1 공정준수" },
+      { id:"1-2", name:"1.2 준공리스크" },
+    ],
+    "2": [
+      { id:"2-1", name:"2.1 재해예방" },
+      { id:"2-2", name:"2.2 재해실적" },
+    ],
+    "3": [
+      { id:"3-1", name:"3.1 하도급 수행 리스크 발생률" },
+      { id:"3-2", name:"3.2 협력업체 재무위험 비율" },
+    ],
+  },
+
+  /* ══════════ 각 중분류 화면 정의 ══════════ */
+  화면: {
+
+    /* ── 1.1 공정준수 ── */
+    "1-1": [
+      { type:"metrics", accent:"amber", title:"공정 진행 준수율", sub:"계획 공정 대비 실적 | 전 현장 가중평균", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"계획 대비 실적", val:"96.2%"},
+          {lbl:"준수(100%↑) 현장", val:"18개"},
+          {lbl:"지연 현장", val:"5개", cls:"warn"},
+          {lbl:"기준선", val:"98%"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 전사 공정 준수율 96.2% — 기준선(98%) 하회. 지연 현장 5개 집중 관리 필요"},
+        chart:{kind:"line", maxY:105, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[98,98,98,98,98,98], color:"#7e93ab", dash:"5,5"},
+            {data:[99.1,98.4,97.8,97.2,96.8,96.2], color:"#8cb269", dots:true, width:3, vlab:true, lab:["99.1%","98.4%","97.8%","97.2%","96.8%","96.2%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(98%)"},{c:"#8cb269",t:"━━ 월별 공정 준수율"}]},
+      },
+      { type:"list", accent:"amber", title:"마일스톤 지연 현장", sub:"주요 마일스톤 대비 지연 발생 현장", badge:{lv:"warn",txt:"5개 현장"},
+        listTitle:"마일스톤 지연 현황 (지연일 순)",
+        items:[
+          {st:"fail", name:"수도권 광역상수도 (하천점용허가 지연)", amt:"-24일", cls:"red"},
+          {st:"warn", name:"○○ 산업단지 조성 (토공 물량 증가)", amt:"-11일", cls:"amber"},
+          {st:"warn", name:"△△ 복합시설 신축 (골조 지연)", amt:"-8일", cls:"amber"},
+          {st:"done", name:"평택~오송 2복선 (용지보상 완료·정상)", amt:"정상", cls:"green"},
+          {st:"done", name:"▲▲ 도로 확장 (선행조건 충족)", amt:"정상", cls:"green"},
+        ],
+        note:"* 지연 30일 초과 예상 시 돌관공사 검토 트리거",
+      },
+    ],
+
+    /* ── 1.2 준공리스크 ── */
+    "1-2": [
+      { type:"metrics", accent:"miss", title:"돌관공사비 발생액", sub:"공기 만회 위한 추가 투입 원가", badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"누계 돌관공사비", val:"38억", cls:"danger"},
+          {lbl:"전년 동기", val:"21억"},
+          {lbl:"발생 현장 수", val:"3개", cls:"warn"},
+          {lbl:"연말 추정", val:"72억", cls:"danger"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 돌관공사비 전년 동기 대비 +81% — 공기지연 만회 비용 급증. 준공 손익 직접 침식"},
+        chart:{kind:"line", maxY:80, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[4,9,15,24,31,38], color:"#ff6969", dots:true, width:3, vlab:true, lab:["4","9","15","24","31","38"]},
+          ],
+          legend:[{c:"#ff6969",t:"━━ 누계 돌관공사비(억)"}]},
+      },
+      { type:"metrics", accent:"amber", title:"공기연장 클레임", sub:"발주처 대상 공기연장·간접비 청구 현황", badge:{lv:"warn",txt:"협의 중"},
+        boxes:[
+          {lbl:"청구 건수", val:"4건"},
+          {lbl:"청구 금액", val:"64억"},
+          {lbl:"인정(협의) 금액", val:"22억", cls:"warn"},
+          {lbl:"인정률", val:"34%", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 공기연장 클레임 인정률 34% — 미인정분 42억은 준공 손익 리스크로 잔존. 근거자료 보강 필요"},
+        chart:{kind:"bar", color:"#ffad42", labels:["○○상수도","△△복합","▲▲도로","◎◎교량"], data:[28,16,12,8],
+          legend:[{c:"#ffad42",t:"■ 현장별 클레임 청구액(억)"}]},
+      },
+    ],
+
+    /* ── 2.1 재해예방 (선행) ── */
+    "2-1": [
+      { type:"metrics", accent:"amber", title:"아차사고 신고 건수", sub:"중대재해 선행지표 | 신고 활성도가 예방 척도", badge:{lv:"warn",txt:"신고 저조"},
+        boxes:[
+          {lbl:"6월 신고 건수", val:"12건"},
+          {lbl:"현장당 평균", val:"0.5건", cls:"warn"},
+          {lbl:"목표(현장당)", val:"1.0건"},
+          {lbl:"고위험작업 비중", val:"18%", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 아차사고 신고 현장당 0.5건 — 목표 하회. 신고 저조는 은폐 가능성 신호로, 오히려 중대재해 리스크 상승"},
+        chart:{kind:"line", maxY:1.4, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[1,1,1,1,1,1], color:"#7e93ab", dash:"5,5"},
+            {data:[0.8,0.7,0.6,0.6,0.5,0.5], color:"#ffad42", dots:true, width:3, vlab:true, lab:["0.8","0.7","0.6","0.6","0.5","0.5"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 목표(현장당 1.0건)"},{c:"#ffad42",t:"━━ 현장당 아차사고 신고"}]},
+      },
+      { type:"list", accent:"amber", title:"고위험작업 현장", sub:"밀폐공간·고소·중량물 등 고위험 공정 진행 현장", badge:{lv:"warn",txt:"집중관리 4개"},
+        listTitle:"고위험작업 진행 현장",
+        items:[
+          {st:"warn", name:"○○ 터널 (밀폐공간·발파)", amt:"고위험", cls:"amber"},
+          {st:"warn", name:"△△ 교량 (고소작업·크레인)", amt:"고위험", cls:"amber"},
+          {st:"warn", name:"▲▲ 지하차도 (흙막이·굴착)", amt:"고위험", cls:"amber"},
+          {st:"warn", name:"◎◎ 플랜트 (중량물 양중)", amt:"고위험", cls:"amber"},
+          {st:"done", name:"□□ 건축 (마감공정·저위험)", amt:"관리 정상", cls:"green"},
+        ],
+        note:"* 고위험 공정 착수 전 안전점검 필수 · 아차사고 신고 독려",
+      },
+    ],
+
+    /* ── 2.2 재해실적 (후행) ── */
+    "2-2": [
+      { type:"metrics", accent:"miss", title:"재해율 (LTIR)", sub:"근로손실 재해율 | 20만 근로시간당 재해 건수", badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"당사 LTIR", val:"0.42", cls:"danger"},
+          {lbl:"업계 평균", val:"0.35"},
+          {lbl:"전년 동기", val:"0.38"},
+          {lbl:"목표", val:"0.30"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> LTIR 0.42로 업계평균·목표 상회, 전년比 악화 — 2.1 아차사고 신고 저조가 후행지표로 현실화되는 신호"},
+        chart:{kind:"line", maxY:0.55, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[0.30,0.30,0.30,0.30,0.30,0.30], color:"#7e93ab", dash:"5,5"},
+            {data:[0.35,0.35,0.35,0.35,0.35,0.35], color:"#8cb269", dash:"4,4"},
+            {data:[0.34,0.36,0.38,0.39,0.41,0.42], color:"#ff6969", dots:true, width:3, vlab:true, lab:["0.34","0.36","0.38","0.39","0.41","0.42"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 목표(0.30)"},{c:"#8cb269",t:"- - 업계평균(0.35)"},{c:"#ff6969",t:"━━ 당사 LTIR"}]},
+      },
+      { type:"metrics", accent:"miss", title:"중대재해 발생", sub:"중대재해처벌법 대상 사고 | 경영 리스크 직결", badge:{lv:"danger",txt:"1건 발생"},
+        boxes:[
+          {lbl:"금년 발생", val:"1건", cls:"danger"},
+          {lbl:"조사 진행", val:"1건", cls:"warn"},
+          {lbl:"영업정지 리스크", val:"검토중", cls:"danger"},
+          {lbl:"입찰제한 리스크", val:"검토중", cls:"danger"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 중대재해 1건 발생 — 영업정지·입찰제한·경영책임자 처벌 리스크. 03 자금·05 운영(대외신인도) 대분류로 리스크 전이"},
+        chart:{kind:"bar", color:"#ff6969", labels:["23년","24년","25년","26년(현재)"], data:[2,1,1,1],
+          legend:[{c:"#ff6969",t:"■ 연도별 중대재해 발생 건수"}]},
+      },
+    ],
+
+    /* ── 3.1 하도급 수행 리스크 발생률 ── */
+    "3-1": [
+      { type:"metrics", accent:"miss", title:"하도급 수행 리스크 발생률", sub:"2025년 자재/외주 협력업체 정기평가 등급 및 부실위험 비율 모니터링", hasOutTab:true, badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"평가 대상 업체 수", val:"260개사"},
+          {lbl:"D·E등급 위험업체", val:"9개사 (3.5%)", cls:"danger"},
+          {lbl:"D등급 (경고 대상)", val:"7개사 (2.7%)", cls:"warn"},
+          {lbl:"E등급 (등록제외)", val:"2개사 (0.8%)", cls:"danger"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 2025년 정기평가 260개사 중 D등급 7개사(2.7%), E등급 2개사(0.8%) 발생 — 부실·납기지연 위험업체 발주 제한 및 대체업체 확보 필요."},
+        chart:{kind:"line", maxY:15, labels:["2021년","2022년","2023년","2024년","2025년"],
+          series:[
+            {data:[8,8,8,8,8], color:"#7e93ab", dash:"5,5"},
+            {data:[9.7,7.7,9.9,9.3,3.5], color:"#ff6969", dots:true, width:3, vlab:true, lab:["9.7%","7.7%","9.9%","9.3%","3.5%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 5개년 평균치(8%)"},{c:"#ff6969",t:"━━ 리스크 발생률(D·E등급 비율)"}]},
+      },
+      { type:"list", accent:"miss", title:"하도급 리스크 발생 현황", sub:"협력사 타절 현황 및 2025년 정기평가 D·E등급 부실위험/경고 대상 업체 모니터링", badge:{lv:"danger",txt:"상위 10건"},
+        items:[
+          {st:"fail", name:"안성당목리물류센터 (전기공사) — 일렉파워(주) 회생절차 개시신청, 타절 후 직영공사 전환 (잔여 42.8억)", amt:"직영전환", cls:"red"},
+          {st:"fail", name:"평택 사무3동 신축 (조적미장) — (주)영진미방 견적오류 공사포기, 타절 후 신규업체 재선정 발주 중 (25.18억)", amt:"재선정중", cls:"red"},
+          {st:"fail", name:"아산 벨코어 스위첸 (석공사) — 태원석재(주) 채권가압류, 임의타절 후 재발주 (후속 견적 +1.0억 예산초과)", amt:"예산초과", cls:"red"},
+          {st:"warn", name:"대전 에테르 스위첸 (일반배관) — (주)원엔지니어링 회생절차 개시신청, 합의타절 후 수의계약 (33.25억)", amt:"수의계약", cls:"amber"},
+          {st:"warn", name:"아산 벨코어 / 대전 에테르 (인테리어) — (주)가우디자인 가압류·강제집행(1.58억), 합의타절 후 수의계약 (3.33억)", amt:"수의계약", cls:"amber"},
+          {st:"fail", name:"(주)유성애드 (건축자재 · 사인물) — 25년 E등급 (57.0점) | 낙찰률 저조(2/0), 가격경쟁력 부족, 현금C-, 납품지연", amt:"등록제외", cls:"red"},
+          {st:"fail", name:"(주)을지공조시스템 (설비자재 · 시스템에어컨) — 25년 E등급 (42.0점) | 대전 씨엘리오 불성실 대응 (대출/납품지연)", amt:"등록제외", cls:"red"},
+          {st:"warn", name:"(주)아반트 (공통자재 · 경질우레탄폼보드) — 25년 D등급 (69.0점) | 폐업으로 인한 재무등급 누락", amt:"경고대상", cls:"amber"},
+          {st:"warn", name:"세원공조산업기계(주) (설비자재 · 공조기外) — 25년 D등급 (68.3점) | 평택/과천 불성실 대응, 안전보건 수칙 미준수", amt:"경고대상", cls:"amber"},
+          {st:"warn", name:"(주)삼화에이스 (설비자재 · 공조기外) — 25년 D등급 (68.0점) | 안전 및 보건 수칙 미준수", amt:"경고대상", cls:"amber"},
+        ],
+        note:"* 타절/직영전환 5건 + 2025년 정기평가 부실위험 E등급(등록제외 2개사) 및 D등급 상위 3개사 표출",
+      },
+    ],
+
+/* ── 3.2 협력업체 재무위험 비율 ── */
+    "3-2": [
+      { type:"metrics", accent:"miss", title:"협력업체 재무위험 비율", sub:"711개 등록 협력사 당기(2025)·전기(2024) 등급 평가 | 엑셀 백데이터(02.03.02) 연동", badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"당기(2025) 위험비율", val:"16.9%", cls:"danger"},
+          {lbl:"위험업체 수", val:"120개사", cls:"danger"},
+          {lbl:"적정선 (기준선)", val:"15.0%"},
+          {lbl:"적정선 대비 초과", val:"+1.9%p", cls:"warn"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 재무위험 비율 16.9%(120개사)로 적정선(15.0%) 초과(+1.9%p) — 신용 B-이하 또는 현금 D/E등급 위험업체 발주 제한 및 대체업체 사전 확보"},
+        chart:{kind:"line", minY:12, maxY:20, labels:["23년 1H","23년 2H","24년 1H","24년 2H","25년 1H","25년 2H"],
+          series:[
+            {data:[15,15,15,15,15,15], color:"#7e93ab", dash:"5,5"},
+            {data:[16.0,16.0,16.5,16.5,16.9,16.9], color:"#ff6969", dots:true, width:3, vlab:true, lab:["16.0%","16.0%","16.5%","16.5%","16.9%","16.9%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 적정선(15.0%)"},{c:"#ff6969",t:"━━ 재무위험 비율 추이"}]},
+      },
+      { type:"list", accent:"miss", title:"협력사 신용등급·현금흐름 변동 모니터링 (당기 vs 전기)", sub:"신용 B-이하 / 현금흐름 D·E등급 부실위험 및 전기 대비 등급하락 업체", badge:{lv:"danger",txt:"위험 120개사"},
+        listTitle:"주요 재무위험 협력사 및 전기(2024) 대비 등급 변동 현황",
+        items:[
+          {st:"fail", name:"대림통상 주식회사 (24년 B-/D → 25년 B-/D · 매출 1,022억)", amt:"위험(D등급)", cls:"red"},
+          {st:"fail", name:"현대에버다임 (24년 BB/D → 25년 BB/D · 매출 2,725억)", amt:"위험(D등급)", cls:"red"},
+          {st:"fail", name:"삼진스틸산업(주) (24년 B/C- → 25년 B+/D · 매출 182억)", amt:"신규위험(D)", cls:"red"},
+          {st:"fail", name:"주식회사 세명이엔지 (24년 B/C- → 25년 B/D · 매출 44억)", amt:"신규위험(D)", cls:"red"},
+          {st:"warn", name:"주식회사 해냄씨앤디 (24년 B-/C- → 25년 CCC/C- · 매출 6억)", amt:"고위험(CCC)", cls:"amber"},
+        ],
+        note:"* 엑셀 02.03.02 시트에 2024년(전기) 보완 데이터 가공 저장 완료 — 내일 최종 확정값 수신 시 자동 대체 가능",
+      },
+    ],
+
+  },
+};
+
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   03 자금 — 선행지표 대시보드 데이터
+   ▶ 매월/수시 이 파일의 숫자·문장만 수정 → 저장 → F5
+   ◆ 따옴표 안 내용만 수정.  상태: ok(초록)/warn(노랑)/danger(빨강)
+   ◆ 리스트 상태: done(초록)/warn(노랑)/fail(빨강)
+   ─────────────────────────────────────────────
+   구조(4차 보고 확정): 현장수금관리 / 분양수금관리 / 전사 재무건전성
+═══════════════════════════════════════════════════════════════ */
+
+const JAGEUM = {
+  meta: {
+    제목: "03 자금 — 선행지표 대시보드",
+    부제: "미수·수금·차입 단계의 유동성 조기경보 (수치는 예시)",
+    기준: "2026년 6월 마감 기준",
+  },
+
+  대분류: [
+    { name:"현장수금관리", desc:"기성 수금·미청구 지연 → 유동성 경보", status:{lv:"danger",txt:"경보 1"} },
+    { name:"분양수금관리", desc:"분양대금 유입·정산·미분양 손실 감지", status:{lv:"danger",txt:"경보 1"} },
+    { name:"전사 재무건전성", desc:"차입·이자 결과지표 상시 모니터링", status:{lv:"warn",txt:"주의 1"} },
+  ],
+
+  중분류: {
+    "1": [
+      { id:"1-1", name:"1.1 수금관리" },
+      { id:"1-2", name:"1.2 미청구관리" },
+      { id:"1-3", name:"1.3 파트너관리" },
+    ],
+    "2": [
+      { id:"2-1", name:"2.1 분양자금유입" },
+      { id:"2-2", name:"2.2 정산리스크" },
+      { id:"2-3", name:"2.3 미분양 손실 시뮬레이션" },
+    ],
+    "3": [
+      { id:"3-1", name:"3.1 차입부담" },
+      { id:"3-2", name:"3.2 이자상환능력" },
+    ],
+  },
+
+  화면: {
+
+    /* ── 1.1 수금관리 ── */
+    "1-1": [
+      { type:"metrics", accent:"amber", title:"청구기성금 수금률", sub:"청구 기성 대비 실제 회수 | 전 현장 가중평균", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"청구기성 수금률", val:"91.4%"},
+          {lbl:"전월 대비", val:"-2.1%p", cls:"warn"},
+          {lbl:"기준선", val:"95%"},
+          {lbl:"지연 현장", val:"6개", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 청구기성 수금률 91.4%로 기준선(95%) 하회·하락 추세 — 수금 지연 현장 6개 유동성 모니터링 강화"},
+        chart:{kind:"line", maxY:100, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[95,95,95,95,95,95], color:"#7e93ab", dash:"5,5"},
+            {data:[95.8,95.1,94.6,93.8,93.5,91.4], color:"#8cb269", dots:true, width:3, vlab:true, lab:["95.8%","95.1%","94.6%","93.8%","93.5%","91.4%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(95%)"},{c:"#8cb269",t:"━━ 월별 수금률"}]},
+      },
+      { type:"metrics", accent:"amber", title:"공사비 회수율", sub:"누적 기성 대비 누적 회수 | 현금 전환 속도", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"공사비 회수율", val:"88.7%"},
+          {lbl:"회수 리드타임", val:"52일", cls:"warn"},
+          {lbl:"목표 리드타임", val:"45일"},
+          {lbl:"미회수 잔액", val:"1,820억", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 회수 리드타임 52일로 목표(45일) 초과 — 회수 지연이 현금흐름 압박. 미회수 잔액 1,820억 관리 필요"},
+        chart:{kind:"bar", color:"#ffad42", labels:["인프라","건축(주거)","건축(비주거)","기타"], data:[720,640,340,120],
+          legend:[{c:"#ffad42",t:"■ 부문별 미회수 잔액(억)"}]},
+      },
+    ],
+
+    /* ── 1.2 미청구관리 ── */
+    "1-2": [
+      { type:"metrics", accent:"miss", title:"미청구공사비율", sub:"공사 미수채권 대비 미청구 비율 | 매출-현금 괴리", badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"미청구공사비율", val:"18.3%", cls:"danger"},
+          {lbl:"미청구 잔액", val:"3,140억", cls:"danger"},
+          {lbl:"기준선", val:"12%"},
+          {lbl:"전월 대비", val:"+2.4%p", cls:"danger"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 미청구공사비율 18.3%로 기준선(12%) 크게 초과·상승 — 원가 투입 대비 청구 지연. 매출은 인식되나 현금 미유입, 유동성 경보"},
+        chart:{kind:"line", maxY:24, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[12,12,12,12,12,12], color:"#7e93ab", dash:"5,5"},
+            {data:[13.1,14.0,15.2,16.1,15.9,18.3], color:"#ff6969", dots:true, width:3, vlab:true, lab:["13.1%","14.0%","15.2%","16.1%","15.9%","18.3%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(12%)"},{c:"#ff6969",t:"━━ 미청구공사비율"}]},
+      },
+      { type:"list", accent:"miss", title:"악성 미청구 현장", sub:"6개월 이상 장기 미청구 발생 현장", badge:{lv:"danger",txt:"악성 4개"},
+        listTitle:"장기 미청구 현장 (미청구액 순)",
+        items:[
+          {st:"fail", name:"○○ 복합개발 (설계변경 정산 지연)", amt:"680억", cls:"red"},
+          {st:"fail", name:"△△ 플랜트 (기성 인정 분쟁)", amt:"540억", cls:"red"},
+          {st:"warn", name:"▲▲ 도로 (물량 확정 협의 중)", amt:"310억", cls:"amber"},
+          {st:"warn", name:"◎◎ 주상복합 (준공정산 대기)", amt:"220억", cls:"amber"},
+        ],
+        note:"* 악성 미청구는 대손 전환 리스크 — 청구 근거 확보 및 조기 정산 협의 필요",
+      },
+    ],
+
+    /* ── 1.3 파트너관리 ── */
+    "1-3": [
+      { type:"metrics", accent:"amber", title:"공동도급사 원가 수금 지연율", sub:"공동도급 현장 분담금·정산금 회수 지연", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"수금 지연율", val:"14.2%", cls:"warn"},
+          {lbl:"지연 금액", val:"460억", cls:"warn"},
+          {lbl:"대상 현장", val:"8개"},
+          {lbl:"기준선", val:"10%"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 공동도급사 원가 수금 지연율 14.2% — 주관사 대납 부담 발생. 파트너사 재무상태 점검 및 정산 주기 단축 필요"},
+        chart:{kind:"line", maxY:20, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[10,10,10,10,10,10], color:"#7e93ab", dash:"5,5"},
+            {data:[9.8,10.4,11.6,12.5,13.1,14.2], color:"#ffad42", dots:true, width:3, vlab:true, lab:["9.8%","10.4%","11.6%","12.5%","13.1%","14.2%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(10%)"},{c:"#ffad42",t:"━━ 수금 지연율"}]},
+      },
+      { type:"list", accent:"amber", title:"공동도급 파트너 현황", sub:"주요 공동도급 파트너사 정산 상태", badge:{lv:"warn",txt:"지연 3개사"},
+        listTitle:"파트너사별 정산 지연 현황",
+        items:[
+          {st:"fail", name:"□□건설 (2개 현장 · 분담금 지연 90일↑)", amt:"210억", cls:"red"},
+          {st:"warn", name:"◇◇산업 (1개 현장 · 정산 협의 중)", amt:"150억", cls:"amber"},
+          {st:"warn", name:"☆☆ENG (1개 현장 · 지연 45일)", amt:"100억", cls:"amber"},
+          {st:"done", name:"○○종합 (정산 정상)", amt:"정상", cls:"green"},
+        ],
+        note:"* 파트너사 부실 시 주관사 원가 대납 리스크 — 신용 모니터링 병행",
+      },
+    ],
+
+    /* ── 2.1 분양자금유입 ── */
+    "2-1": [
+      { type:"metrics", accent:"amber", title:"EXIT 분양률", sub:"준공·입주 시점 분양 완료율 | 잔금 회수 기반", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"평균 EXIT 분양률", val:"82%"},
+          {lbl:"기준선", val:"90%"},
+          {lbl:"미달 사업장", val:"2개", cls:"warn"},
+          {lbl:"미분양 잔여", val:"340세대", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> EXIT 분양률 82%로 기준선(90%) 하회 — 준공 시점 미분양 잔금 미회수 리스크. 01 수주 초기분양 감지와 연계 관리"},
+        chart:{kind:"bar", color:"#ffad42", labels:["◇◇1단지","☆☆오피스텔","●●2차","▽▽지산"], data:[94,88,71,75],
+          legend:[{c:"#ffad42",t:"■ 사업장별 EXIT 분양률(%)"}]},
+      },
+      { type:"metrics", accent:"amber", title:"분양대금 수금률", sub:"계약 분양대금 대비 실제 수납 비율", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"분양대금 수금률", val:"86.5%"},
+          {lbl:"중도금 연체율", val:"6.2%", cls:"warn"},
+          {lbl:"수금 예정(하반기)", val:"2,400억"},
+          {lbl:"미수 분양대금", val:"580억", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 중도금 연체율 6.2% 상승 — 분양대금 수금 차질이 사업장 자금수지 압박. 연체 세대 집중 관리 필요"},
+        chart:{kind:"line", maxY:100, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[92,92,92,92,92,92], color:"#7e93ab", dash:"5,5"},
+            {data:[91.2,90.4,89.5,88.3,87.6,86.5], color:"#ffad42", dots:true, width:3, vlab:true, lab:["91.2%","90.4%","89.5%","88.3%","87.6%","86.5%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 목표(92%)"},{c:"#ffad42",t:"━━ 분양대금 수금률"}]},
+      },
+    ],
+
+    /* ── 2.2 정산리스크 ── */
+    "2-2": [
+      { type:"metrics", accent:"amber", title:"장기연체율", sub:"분양대금 90일 이상 장기 연체 비율", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"장기연체율", val:"3.8%", cls:"warn"},
+          {lbl:"연체 세대", val:"142세대", cls:"warn"},
+          {lbl:"기준선", val:"2.5%"},
+          {lbl:"연체 금액", val:"210억", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 장기연체율 3.8%로 기준선(2.5%) 초과 — 계약 해지·대손 전환 리스크. 연체 세대 사후관리 및 대손 검토 필요"},
+        chart:{kind:"line", maxY:5.5, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[2.5,2.5,2.5,2.5,2.5,2.5], color:"#7e93ab", dash:"5,5"},
+            {data:[2.6,2.9,3.1,3.4,3.6,3.8], color:"#ffad42", dots:true, width:3, vlab:true, lab:["2.6%","2.9%","3.1%","3.4%","3.6%","3.8%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(2.5%)"},{c:"#ffad42",t:"━━ 장기연체율"}]},
+      },
+      { type:"metrics", accent:"ok", title:"입주율", sub:"준공 사업장 입주 완료율 | 잔금 회수 확정도", badge:{lv:"ok",txt:"정상"},
+        boxes:[
+          {lbl:"평균 입주율", val:"93.5%", cls:"ok"},
+          {lbl:"기준선", val:"90%"},
+          {lbl:"입주 지연 세대", val:"88세대"},
+          {lbl:"잔금 회수율", val:"91.2%", cls:"ok"},
+        ],
+        msg:{lv:"ok", txt:"<strong>[정상]</strong> 평균 입주율 93.5%로 기준선 상회 — 입주 정상 진행으로 잔금 회수 안정적. 지연 세대만 개별 관리"},
+        chart:{kind:"bar", color:"#8cb269", labels:["◇◇1단지","☆☆오피스텔","▽▽지산","◎◎주상복합"], data:[97,91,94,92],
+          legend:[{c:"#8cb269",t:"■ 사업장별 입주율(%)"}]},
+      },
+    ],
+
+    /* ── 2.3 미분양 손실 시뮬레이션 ── */
+    /* 할인율 버튼 클릭 → 현장별 손실 표 + 전사 합계 자동 계산                */
+    /* 미분양규모 = 도급 × (1 - 분양률/100),  손실 = 미분양규모 × 할인율        */
+    /* 현장 추가/삭제: 아래 현장[]에 { 이름, 도급, 분양률 } 한 줄 추가/삭제      */
+    "2-3": [
+      { type:"sim", accent:"amber", title:"미분양 할인손실 시뮬레이터", sub:"할인율 선택 시 현장별 손실·전사 합계 자동 산출",
+        note:"* 도급액을 분양대금 규모로 간주한 시나리오 추정치 (현할차 미반영) — 데모. 분양률은 최근 분양현황 기준",
+        할인율: [10,15,20,25,30],
+        현재할인율: 20,
+        /* 미분양 있는 현장(분양률<100%)만. 도급=분양규모 간주. 구분 분리 현장은 오피스텔 등 저조분 별도 표기 */
+        현장: [
+          { 이름:"광주 상무 퍼스티넘(일반)", 도급:1010, 분양률:26 },
+          { 이름:"대전 씨엘리오(오피스텔)",  도급:742,  분양률:36 },
+          { 이름:"해운대 엘마르",           도급:763,  분양률:52 },
+          { 이름:"대전 에테르(오피스텔)",   도급:678,  분양률:53 },
+          { 이름:"스위첸 웰츠타워 2차",     도급:200,  분양률:70 },
+          { 이름:"아산 벨코어",             도급:1047, 분양률:90 },
+          { 이름:"수성 포레스트",           도급:2192, 분양률:91 },
+          { 이름:"미사 아넬로",             도급:1140, 분양률:97 },
+          { 이름:"대전 르에브",             도급:3629, 분양률:99 },
+        ],
+        총평문구: "미분양 물량 전체를 {할인}% 할인 분양 시 전사 추정 손실 <strong>{손실}억</strong> — 초기분양 부진 현장(광주·씨엘리오·해운대)이 손실의 대부분 차지",
+      },
+    ],
+
+    /* ── 3.1 차입부담 ── */
+    "3-1": [
+      { type:"metrics", accent:"amber", title:"순차입금의존도", sub:"순차입금 ÷ 총자본 | 재무 레버리지 결과지표", badge:{lv:"warn",txt:"목표 초과"},
+        boxes:[
+          {lbl:"순차입금의존도", val:"34%", cls:"warn"},
+          {lbl:"목표", val:"30%"},
+          {lbl:"우발채무 포함", val:"46%", cls:"warn"},
+          {lbl:"경보선", val:"50%"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 순차입금의존도 34%로 목표(30%) 초과, 우발채무 포함 시 46%로 경보선(50%) 근접 — 01 수주 PF 전이 리스크와 연동 관리"},
+        chart:{kind:"line", maxY:60, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[30,30,30,30,30,30], color:"#8cb269", dash:"5,5"},
+            {data:[50,50,50,50,50,50], color:"#ff6969", dash:"4,4"},
+            {data:[31,31.5,32,33,33.5,34], color:"#ffad42", dots:true, width:3, vlab:true, lab:["31%","31.5%","32%","33%","33.5%","34%"]},
+          ],
+          legend:[{c:"#8cb269",t:"╌╌ 목표(30%)"},{c:"#ff6969",t:"- - 경보선(50%)"},{c:"#ffad42",t:"━━ 순차입금의존도"}]},
+      },
+      { type:"metrics", accent:"amber", title:"차입 만기 구조", sub:"단기 차입 집중도 | 차환 리스크", badge:{lv:"warn",txt:"단기 집중"},
+        boxes:[
+          {lbl:"총 차입금", val:"8,600억"},
+          {lbl:"1년 내 만기", val:"4,300억", cls:"warn"},
+          {lbl:"단기 비중", val:"50%", cls:"warn"},
+          {lbl:"평균 조달금리", val:"5.8%", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 1년 내 만기 차입 50% 집중 — 고금리 환경 차환 부담. 만기 분산 및 장기 전환 통한 구조 개선 필요"},
+        chart:{kind:"bar", color:"#ffad42", labels:["3M내","6M내","1년내","1년↑"], data:[1200,1400,1700,4300],
+          legend:[{c:"#ffad42",t:"■ 만기별 차입금(억)"}]},
+      },
+    ],
+
+    /* ── 3.2 이자상환능력 ── */
+    "3-2": [
+      { type:"metrics", accent:"amber", title:"이자보상배율", sub:"영업이익 ÷ 이자비용 | 이자 상환 여력", badge:{lv:"warn",txt:"하락 추세"},
+        boxes:[
+          {lbl:"이자보상배율", val:"2.4배", cls:"warn"},
+          {lbl:"전년 동기", val:"3.1배"},
+          {lbl:"기준선", val:"3.0배"},
+          {lbl:"경보선", val:"1.5배"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 이자보상배율 2.4배로 기준선(3.0배) 하회·전년比 악화 — 영업이익 둔화 + 이자비용 상승 이중 압박. 04 이익 대분류와 연동"},
+        chart:{kind:"line", maxY:4, labels:["25.1Q","25.2Q","25.3Q","25.4Q","26.1Q","26.2Q"],
+          series:[
+            {data:[3.0,3.0,3.0,3.0,3.0,3.0], color:"#7e93ab", dash:"5,5"},
+            {data:[1.5,1.5,1.5,1.5,1.5,1.5], color:"#ff6969", dash:"4,4"},
+            {data:[3.1,2.9,2.8,2.6,2.5,2.4], color:"#ffad42", dots:true, width:3, vlab:true, lab:["3.1","2.9","2.8","2.6","2.5","2.4"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(3.0배)"},{c:"#ff6969",t:"- - 경보선(1.5배)"},{c:"#ffad42",t:"━━ 이자보상배율"}]},
+      },
+      { type:"metrics", accent:"amber", title:"이자비용 추이", sub:"분기별 금융비용 부담 | 조달금리 영향", badge:{lv:"warn",txt:"증가"},
+        boxes:[
+          {lbl:"분기 이자비용", val:"124억", cls:"warn"},
+          {lbl:"전년 동기", val:"98억"},
+          {lbl:"증가율", val:"+26.5%", cls:"warn"},
+          {lbl:"연간 추정", val:"510억", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 분기 이자비용 124억으로 전년比 +26.5% — 차입 증가와 고금리 이중 요인. 차입 구조 개선으로 금융비용 통제 필요"},
+        chart:{kind:"bar", color:"#ffad42", labels:["25.3Q","25.4Q","26.1Q","26.2Q"], data:[102,110,118,124],
+          legend:[{c:"#ffad42",t:"■ 분기별 이자비용(억)"}]},
+      },
+    ],
+
+  },
+};
+
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   04 이익 — 선행지표 대시보드 데이터
+   ▶ 매월/수시 이 파일의 숫자·문장만 수정 → 저장 → F5
+   ◆ 상태: ok(초록)/warn(노랑)/danger(빨강) · 리스트: done/warn/fail
+   구조(4차 보고 확정): 현장 손익관리 / 원가환경 리스크 / 전사 손익건전성
+═══════════════════════════════════════════════════════════════ */
+
+const IIK = {
+  meta: {
+    제목: "04 이익 — 선행지표 대시보드",
+    부제: "원가·단가·이익 단계의 손익 리스크 선제 포착 (수치는 예시)",
+    기준: "2026년 6월 마감 기준",
+  },
+
+  대분류: [
+    { name:"현장 손익관리", desc:"준공 원가율·설계변경 → 손실 전환 조기 포착", status:{lv:"danger",txt:"경보 1"} },
+    { name:"외주구매 계약 관리", desc:"자재 노무단가 변동률 · 예산 대비 낙찰률", status:{lv:"warn",txt:"주의 1"} },
+    { name:"전사 손익건전성", desc:"이익률·충당 리스크 결과지표 모니터링", status:{lv:"warn",txt:"주의 1"} },
+  ],
+
+  중분류: {
+    "1": [
+      { id:"1-1", name:"1.1 원가율관리" },
+      { id:"1-2", name:"1.2 변경·클레임" },
+    ],
+    "2": [
+      { id:"2-1", name:"2.1 자재 단가 변동률" },
+      { id:"2-2", name:"2.2 예산 대비 낙찰률" },
+    ],
+    "3": [
+      { id:"3-1", name:"3.1 이익의 질" },
+      { id:"3-2", name:"3.2 손실충당 리스크" },
+    ],
+  },
+
+  화면: {
+
+    /* ── 1.1 원가율관리 ── */
+    "1-1": [
+      { type:"metrics", accent:"miss", title:"준공 추정원가율", sub:"진행 현장 준공 시점 추정 원가율 | 손실 전환 감지", badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"평균 추정원가율", val:"91.8%", cls:"warn"},
+          {lbl:"수주 시 대비", val:"+2.6%p", cls:"danger"},
+          {lbl:"손실전환 현장", val:"3개", cls:"danger"},
+          {lbl:"목표원가율", val:"89%"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 준공 추정원가율 91.8%로 수주 시 대비 +2.6%p 악화 — 3개 현장 손실 전환. 01 수주 투찰 실행률 악화가 준공 손익으로 현실화"},
+        chart:{kind:"line", maxY:100, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[89,89,89,89,89,89], color:"#7e93ab", dash:"5,5"},
+            {data:[95,95,95,95,95,95], color:"#ff6969", dash:"4,4"},
+            {data:[89.4,89.9,90.4,90.9,91.3,91.8], color:"#ffad42", dots:true, width:3, vlab:true, lab:["89.4%","89.9%","90.4%","90.9%","91.3%","91.8%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 목표(89%)"},{c:"#ff6969",t:"- - 손실선(95%)"},{c:"#ffad42",t:"━━ 평균 추정원가율"}]},
+      },
+      { type:"list", accent:"miss", title:"원가율 상승 현장", sub:"수주 대비 원가율 악화 현장 (악화폭 순)", badge:{lv:"danger",txt:"악화 5개"},
+        listTitle:"원가율 악화 현장 현황",
+        items:[
+          {st:"fail", name:"○○ 플랜트 (설계변경·물량증가)", amt:"98.2%", cls:"red"},
+          {st:"fail", name:"△△ 터널 (지반 악화·공기연장)", amt:"96.7%", cls:"red"},
+          {st:"fail", name:"▲▲ 복합시설 (마감 단가상승)", amt:"95.4%", cls:"red"},
+          {st:"warn", name:"◎◎ 도로 (토공 물량조정)", amt:"92.8%", cls:"amber"},
+          {st:"warn", name:"□□ 주상복합 (골조 지연)", amt:"91.5%", cls:"amber"},
+        ],
+        note:"* 원가율 95% 초과 = 사실상 한계 현장 — 이익개선 검토 및 즉시 경보",
+      },
+    ],
+
+    /* ── 1.2 변경·클레임 ── */
+    "1-2": [
+      { type:"metrics", accent:"ok", title:"설계변경 손익개선액", sub:"설계변경 통한 원가 개선·추가 이익 확보", badge:{lv:"ok",txt:"개선"},
+        boxes:[
+          {lbl:"누계 개선액", val:"142억", cls:"ok"},
+          {lbl:"전년 동기", val:"118억"},
+          {lbl:"진행 건수", val:"27건"},
+          {lbl:"승인 대기", val:"64억"},
+        ],
+        msg:{lv:"ok", txt:"<strong>[정상]</strong> 설계변경 손익개선액 142억으로 전년比 증가 — 원가 개선 기회 선제 포착 양호. 승인 대기 64억 조기 확정 추진"},
+        chart:{kind:"line", maxY:180, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[24,48,72,96,120,142], color:"#8cb269", dots:true, width:3, vlab:true, lab:["24","48","72","96","120","142"]},
+          ],
+          legend:[{c:"#8cb269",t:"━━ 누계 손익개선액(억)"}]},
+      },
+      { type:"metrics", accent:"amber", title:"클레임 청구/회수율", sub:"발주처 클레임 청구 대비 인정·회수 비율", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"청구 금액", val:"210억"},
+          {lbl:"인정 금액", val:"82억", cls:"warn"},
+          {lbl:"회수율", val:"39%", cls:"warn"},
+          {lbl:"미회수 잔여", val:"128억", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 클레임 회수율 39% — 미회수 128억은 손익 미확정 리스크. 근거자료 보강 및 발주처 협의 강화 필요"},
+        chart:{kind:"bar", color:"#ffad42", labels:["○○플랜트","△△터널","▲▲복합","◎◎도로"], data:[78,54,42,36],
+          legend:[{c:"#ffad42",t:"■ 현장별 클레임 청구액(억)"}]},
+      },
+    ],
+
+    /* ── 2.1 자재 단가 변동률 ── */
+    "2-1": [
+      { type:"metrics_c21", accent:"miss", title:"자재 단가 변동률 및 인덱스 추이", sub:"주요 자재 2020년 대비 단가 변동 및 품목별 인덱스(2020=100.0) 추적", badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"2020년 대비 누적 상승률", val:"+62.5%", cls:"danger"},
+          {lbl:"전년 대비 상승률", val:"+7.2%", cls:"warn"},
+          {lbl:"손익 영향액 (추정)", val:"-176억원", cls:"danger"},
+        ],
+        note:"* 자재별 각자 2020년 계약단가를 100.0 인덱스로 환산하여 물가 인상분 추적 관리",
+      },
+      { type:"list", accent:"miss", title:"현장별 단가계약 변동시점 손익 영향 현황", sub:"자재별 최근 단가계약 변동 결재품의 백데이터 및 진행 현장 손익 영향 추정", badge:{lv:"danger",txt:"실데이터 반영"},
+        listTitle:"자재별 최근 단가계약 인상/인하 시점 및 손익 영향 백데이터",
+        items:[
+          {st:"fail", name:"케이블 (전기동 5.6% 인상) — 26년 6월 12개 현장 단가품의 변동 (당초 61.3억 → 변경 64.7억)", amt:"-3.4억 손실", cls:"red"},
+          {st:"done", name:"시멘트 (벌크/포시멘트 단가 인하) — 25년 12월 37개 현장 단가품의 변동 (당초 172.8억 → 변경 168.0억)", amt:"+4.8억 개선", cls:"green"},
+          {st:"done", name:"레미탈 (포장 5.5% / 벌크 2.4% 인하) — 25년 5월 중부권 단가품의 변동 (발주잔액 11.0억 대비 0.45억 감)", amt:"+0.45억 개선", cls:"green"},
+          {st:"warn", name:"석고보드·천장재 (평균 6.0% 인상) — 26년 1월 제조원가 인상 품의 (당초 17.68억 → 변경 18.76억)", amt:"-1.08억 손실", cls:"amber"},
+          {st:"warn", name:"강관류 (대표규격 6.1% 인상) — 26년 4월 설비자재 단가품의 변동 (당초 7.65억 → 변경 8.11억)", amt:"-0.46억 손실", cls:"amber"},
+          {st:"warn", name:"강제전선관 (대표규격 4.8% 인상) — 26년 4월 전기자재 단가품의 변동 (당초 4.93억 → 변경 5.16억)", amt:"-0.23억 손실", cls:"amber"},
+        ],
+        note:"* 자재별 최근 변경구매품의(단가) 통합 결재문서 실제 백데이터 집계 반영",
+      },
+    ],
+
+    /* ── 2.2 예산 대비 낙찰률 ── */
+    "2-2": [
+      { type:"metrics", accent:"ok", title:"5개년 자재계약 낙찰률 비교", sub:"2021년 ~ 2025년 자재 및 하도급 외주계약 연도별 낙찰률 추이", badge:{lv:"ok",txt:"5개년 비교"},
+        boxes:[
+          {lbl:"누적 가중낙찰률", val:"91.6%", cls:"ok"},
+          {lbl:"누적 절감액 (절초감)", val:"605.4억원", cls:"ok"},
+          {lbl:"2025년 낙찰률", val:"84.9%", cls:"ok"},
+          {lbl:"낙찰률 개선폭 (2021년 대비)", val:"-12.7%p", cls:"ok"},
+        ],
+        chart:{kind:"line", minY:75, maxY:102, labels:["2021년","2022년","2023년","2024년","2025년"],
+          series:[
+            {data:[90,90,90,90,90], color:"#7e93ab", dash:"5,5"},
+            {data:[97.6,99.1,90.8,89.8,84.9], color:"#22c55e", dots:true, width:3, vlab:true, lab:["97.6%","99.1%","90.8%","89.8%","84.9%"]},
+          ],
+          legend:[{c:"#22c55e",t:"━━ 연도별 예산 대비 낙찰률 (%)"},{c:"#7e93ab",t:"╌╌ 관리 목표선 (90.0%)"}]},
+        note:"* 2021~2025년 누적 외주계약 백데이터 집계 분석 (Main: 외주구매)",
+      },
+      { type:"bd_table", accent:"ok", title:"주요 자재/하도급 입찰계약 절감 현황 (공급가 1.0억원 이상)", sub:"최근 1개년치, 공급가액 1억원이상 주요 자재 입찰 현황", badge:{lv:"ok",txt:"1억이상 계약"},
+        note:"* 공급가액 1.0억원 이상 자재 및 하도급 외주계약 대상 (BD 시트 백데이터 기준)",
+      },
+    ],
+
+    /* ── 3.1 이익의 질 ── */
+    "3-1": [
+      { type:"metrics", accent:"amber", title:"영업이익률", sub:"매출 대비 영업이익 | 연말 추정 연동", badge:{lv:"warn",txt:"하락"},
+        boxes:[
+          {lbl:"영업이익률", val:"3.2%", cls:"warn"},
+          {lbl:"전년 동기", val:"4.1%"},
+          {lbl:"사업계획", val:"4.0%"},
+          {lbl:"연말 추정", val:"3.4%", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 영업이익률 3.2%로 사업계획(4.0%)·전년比 하회 — 원가율 악화가 이익률로 직결. 연말 추정 3.4%로 계획 미달 전망"},
+        chart:{kind:"line", maxY:6, labels:["25.1Q","25.2Q","25.3Q","25.4Q","26.1Q","26.2Q"],
+          series:[
+            {data:[4.0,4.0,4.0,4.0,4.0,4.0], color:"#7e93ab", dash:"5,5"},
+            {data:[4.2,4.0,3.9,3.6,3.4,3.2], color:"#ffad42", dots:true, width:3, vlab:true, lab:["4.2%","4.0%","3.9%","3.6%","3.4%","3.2%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 사업계획(4.0%)"},{c:"#ffad42",t:"━━ 영업이익률"}]},
+      },
+      { type:"metrics", accent:"amber", title:"매출총이익률", sub:"매출 대비 매출총이익 | 원가 구조 건전성", badge:{lv:"warn",txt:"하락"},
+        boxes:[
+          {lbl:"매출총이익률", val:"9.4%", cls:"warn"},
+          {lbl:"전년 동기", val:"10.8%"},
+          {lbl:"기준선", val:"10%"},
+          {lbl:"전월 대비", val:"-0.6%p", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 매출총이익률 9.4%로 기준선(10%) 하회 — 원가율 상승이 근본 원인. 현장 손익관리·원가환경 리스크 대분류와 연계 대응"},
+        chart:{kind:"line", maxY:14, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[10,10,10,10,10,10], color:"#7e93ab", dash:"5,5"},
+            {data:[10.6,10.3,10.0,9.8,9.7,9.4], color:"#ffad42", dots:true, width:3, vlab:true, lab:["10.6%","10.3%","10.0%","9.8%","9.7%","9.4%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(10%)"},{c:"#ffad42",t:"━━ 매출총이익률"}]},
+      },
+    ],
+
+    /* ── 3.2 손실충당 리스크 ── */
+    "3-2": [
+      { type:"metrics", accent:"miss", title:"하자보수비 발생 추이", sub:"준공 현장 하자보수 실적·충당 | 품질 후행지표", badge:{lv:"danger",txt:"증가"},
+        boxes:[
+          {lbl:"누계 하자보수비", val:"96억", cls:"danger"},
+          {lbl:"전년 동기", val:"71억"},
+          {lbl:"증가율", val:"+35.2%", cls:"danger"},
+          {lbl:"연말 추정", val:"194억", cls:"danger"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 하자보수비 전년比 +35% 급증 — 02 공정 품질 부적합률 상승이 하자로 현실화. 연말 추정 194억으로 손익 침식"},
+        chart:{kind:"line", maxY:220, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[14,29,45,62,80,96], color:"#ff6969", dots:true, width:3, vlab:true, lab:["14","29","45","62","80","96"]},
+          ],
+          legend:[{c:"#ff6969",t:"━━ 누계 하자보수비(억)"}]},
+      },
+      { type:"metrics", accent:"miss", title:"대손/소송충당금 증감", sub:"미수채권 대손·소송 충당금 | 잠재 손실", badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"대손충당금", val:"142억", cls:"danger"},
+          {lbl:"소송충당금", val:"88억", cls:"warn"},
+          {lbl:"전년 대비", val:"+24%", cls:"danger"},
+          {lbl:"소송 진행", val:"11건", cls:"warn"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 대손·소송충당금 전년比 +24% 증가 — 미수채권 악화·하자소송 증가 반영. 미인식 도급액 기준 추가 충당 리스크 상존"},
+        chart:{kind:"bar", color:"#ff6969", labels:["대손충당","소송충당","하자충당","기타"], data:[142,88,64,32],
+          legend:[{c:"#ff6969",t:"■ 충당금 유형별 잔액(억)"}]},
+      },
+    ],
+
+  },
+};
+
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   05 운영 — 선행지표 대시보드 데이터
+   ▶ 매월/수시 이 파일의 숫자·문장만 수정 → 저장 → F5
+   ◆ 상태: ok(초록)/warn(노랑)/danger(빨강) · 리스트: done/warn/fail
+   구조(4차 보고 확정): 인력 운영 / 조직 건전성 / 자산·대외신인도
+═══════════════════════════════════════════════════════════════ */
+
+const UNYEONG = {
+  meta: {
+    제목: "05 운영 — 선행지표 대시보드",
+    부제: "인사·윤리·자산·신인도 단계의 조직 효율·리스크 관리 (수치는 예시)",
+    기준: "2026년 6월 마감 기준",
+  },
+
+  대분류: [
+    { name:"인력 운영", desc:"생산성 구조·핵심인재 이탈·기술인력 수급", status:{lv:"warn",txt:"주의 1"} },
+    { name:"조직 건전성", desc:"인사 적체·저성과·윤리 준법 관리", status:{lv:"warn",txt:"주의 1"} },
+    { name:"자산·대외신인도", desc:"고정비 효율·신용등급·행정처분 리스크", status:{lv:"danger",txt:"경보 1"} },
+  ],
+
+  중분류: {
+    "1": [
+      { id:"1-1", name:"1.1 생산성구조" },
+      { id:"1-2", name:"1.2 인력수급" },
+    ],
+    "2": [
+      { id:"2-1", name:"2.1 인사운영" },
+      { id:"2-2", name:"2.2 윤리·준법" },
+    ],
+    "3": [
+      { id:"3-1", name:"3.1 고정비효율" },
+      { id:"3-2", name:"3.2 대외신인도" },
+    ],
+  },
+
+  화면: {
+
+    /* ── 1.1 생산성구조 ── */
+    "1-1": [
+      { type:"metrics", accent:"amber", title:"인당생산성", sub:"1인당 매출·이익 | 적정인원 대비 효율", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"인당 매출", val:"12.4억"},
+          {lbl:"인당 이익", val:"0.42억", cls:"warn"},
+          {lbl:"전년 동기", val:"0.51억"},
+          {lbl:"업계 평균", val:"0.48억"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 인당 이익 0.42억으로 전년比·업계 하회 — 이익률 하락 + 인력 증가 동시 영향. 인당 손익 개선 위한 직급구조 점검 필요"},
+        chart:{kind:"line", maxY:0.7, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[0.48,0.48,0.48,0.48,0.48,0.48], color:"#7e93ab", dash:"5,5"},
+            {data:[0.50,0.49,0.47,0.45,0.44,0.42], color:"#ffad42", dots:true, width:3, vlab:true, lab:["0.50","0.49","0.47","0.45","0.44","0.42"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 업계평균(0.48억)"},{c:"#ffad42",t:"━━ 인당 이익(억)"}]},
+      },
+      { type:"metrics", accent:"amber", title:"인당이익 vs 인당인건비", sub:"인건비 대비 이익 창출 배율 | 인력 효율", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"인당 인건비", val:"0.86억"},
+          {lbl:"이익/인건비 배율", val:"0.49배", cls:"warn"},
+          {lbl:"전년 동기", val:"0.60배"},
+          {lbl:"기준선", val:"0.55배"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 이익/인건비 배율 0.49배로 기준선(0.55배) 하회 — 인건비 상승 대비 이익 창출 둔화. 부문별 적정인원 재검토 필요"},
+        chart:{kind:"bar", color:"#ffad42", labels:["인프라","건축","영업","지원"], data:[0.58,0.52,0.44,0.38],
+          legend:[{c:"#ffad42",t:"■ 부문별 이익/인건비 배율"}]},
+      },
+    ],
+
+    /* ── 1.2 인력수급 ── */
+    "1-2": [
+      { type:"metrics", accent:"amber", title:"핵심인재 이탈률", sub:"핵심 Pool 대비 이탈 비율 | 조직 역량 유출", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"핵심인재 이탈률", val:"8.4%", cls:"warn"},
+          {lbl:"전사 이탈률", val:"11.2%"},
+          {lbl:"기준선", val:"5%"},
+          {lbl:"이탈 인원", val:"12명", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 핵심인재 이탈률 8.4%로 기준선(5%) 초과 — 역량 유출 가속. 이탈위험군 식별 및 유지·보상 계획 수립 시급"},
+        chart:{kind:"line", maxY:12, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[5,5,5,5,5,5], color:"#7e93ab", dash:"5,5"},
+            {data:[5.8,6.4,6.9,7.5,7.9,8.4], color:"#ffad42", dots:true, width:3, vlab:true, lab:["5.8%","6.4%","6.9%","7.5%","7.9%","8.4%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(5%)"},{c:"#ffad42",t:"━━ 핵심인재 이탈률"}]},
+      },
+      { type:"metrics", accent:"miss", title:"현장기술인력 수급률", sub:"필요 대비 확보 기술인력 | 공백 현장 리스크", badge:{lv:"danger",txt:"경보"},
+        boxes:[
+          {lbl:"기술인력 수급률", val:"83%", cls:"danger"},
+          {lbl:"공백 현장", val:"4개", cls:"danger"},
+          {lbl:"기준선", val:"95%"},
+          {lbl:"고령화 비율", val:"38%", cls:"warn"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 현장기술인력 수급률 83%·공백 현장 4개 — 고령화 38%로 구조적 수급난. 공기지연·품질 리스크로 전이(02 공정 연계)"},
+        chart:{kind:"bar", color:"#ff6969", labels:["인프라","건축","플랜트","공통"], data:[78,85,80,88],
+          legend:[{c:"#ff6969",t:"■ 부문별 기술인력 수급률(%)"}]},
+      },
+    ],
+
+    /* ── 2.1 인사운영 ── */
+    "2-1": [
+      { type:"metrics", accent:"amber", title:"승진적체 지수", sub:"직급별 기준연차 초과 인원 비율", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"승진적체 지수", val:"22%", cls:"warn"},
+          {lbl:"기준연차 초과", val:"84명", cls:"warn"},
+          {lbl:"기준선", val:"15%"},
+          {lbl:"핵심직무 적체", val:"18명", cls:"warn"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 승진적체 지수 22%로 기준선(15%) 초과 — 핵심직무 승계 리스크 및 이탈 유발 요인. 적체 원인 분석·육성계획 필요"},
+        chart:{kind:"bar", color:"#ffad42", labels:["부장","차장","과장","대리"], data:[28,25,19,14],
+          legend:[{c:"#ffad42",t:"■ 직급별 적체율(%)"}]},
+      },
+      { type:"metrics", accent:"amber", title:"저성과자 지수", sub:"평가 하위 반복 인원 비율 | 조직 활력", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"저성과자 비율", val:"9.2%", cls:"warn"},
+          {lbl:"반복 저성과", val:"24명", cls:"warn"},
+          {lbl:"개선계획 대상", val:"31명"},
+          {lbl:"기준선", val:"7%"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 저성과자 비율 9.2%로 기준선 초과·반복 저성과 24명 — 조직 활력 저하 요인. 개선계획 수립 및 인사조치 검토 필요"},
+        chart:{kind:"line", maxY:12, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[7,7,7,7,7,7], color:"#7e93ab", dash:"5,5"},
+            {data:[7.8,8.1,8.4,8.7,9.0,9.2], color:"#ffad42", dots:true, width:3, vlab:true, lab:["7.8%","8.1%","8.4%","8.7%","9.0%","9.2%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(7%)"},{c:"#ffad42",t:"━━ 저성과자 비율"}]},
+      },
+    ],
+
+    /* ── 2.2 윤리·준법 ── */
+    "2-2": [
+      { type:"metrics", accent:"ok", title:"지적사항 재발방지율", sub:"감사 지적사항 실질 개선 완료율", badge:{lv:"ok",txt:"정상"},
+        boxes:[
+          {lbl:"재발방지율", val:"91%", cls:"ok"},
+          {lbl:"지적 건수", val:"46건"},
+          {lbl:"개선 완료", val:"42건", cls:"ok"},
+          {lbl:"기준선", val:"85%"},
+        ],
+        msg:{lv:"ok", txt:"<strong>[정상]</strong> 지적사항 재발방지율 91%로 기준선 상회 — 감사 지적 실질 개선 양호. 미완료 4건 조기 조치 필요"},
+        chart:{kind:"line", maxY:100, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[85,85,85,85,85,85], color:"#7e93ab", dash:"5,5"},
+            {data:[86,87,88,89,90,91], color:"#8cb269", dots:true, width:3, vlab:true, lab:["86%","87%","88%","89%","90%","91%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(85%)"},{c:"#8cb269",t:"━━ 재발방지율"}]},
+      },
+      { type:"metrics", accent:"amber", title:"내부신고/징계 건수", sub:"윤리·준법 위반 신고 및 조치 현황", badge:{lv:"warn",txt:"주의"},
+        boxes:[
+          {lbl:"내부신고 건수", val:"8건"},
+          {lbl:"징계 조치", val:"3건", cls:"warn"},
+          {lbl:"조사 진행", val:"2건", cls:"warn"},
+          {lbl:"전년 동기", val:"5건"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 내부신고 8건으로 전년比 증가 — 신고 활성화는 긍정적이나 위반 리스크 상존. 조사 진행 건 신속·공정 처리 필요"},
+        chart:{kind:"bar", color:"#ffad42", labels:["회계","안전","갑질","기타"], data:[3,2,2,1],
+          legend:[{c:"#ffad42",t:"■ 유형별 신고 건수"}]},
+      },
+    ],
+
+    /* ── 3.1 고정비효율 ── */
+    "3-1": [
+      { type:"metrics", accent:"ok", title:"설비 SLA 준수율·차량 가동률", sub:"보유 자산 활용 효율 | 고정비 절감", badge:{lv:"ok",txt:"정상"},
+        boxes:[
+          {lbl:"설비 SLA 준수율", val:"96.2%", cls:"ok"},
+          {lbl:"차량 가동률", val:"81%"},
+          {lbl:"유휴 차량", val:"12대", cls:"warn"},
+          {lbl:"설비 다운타임", val:"3.8%"},
+        ],
+        msg:{lv:"ok", txt:"<strong>[정상]</strong> 설비 SLA 96.2% 양호 — 단, 차량 가동률 81%·유휴 12대로 개선 여지. 유휴 자산 정리로 고정비 추가 절감 가능"},
+        chart:{kind:"line", maxY:100, labels:["1월","2월","3월","4월","5월","6월"],
+          series:[
+            {data:[95,95,95,95,95,95], color:"#7e93ab", dash:"5,5"},
+            {data:[94.8,95.2,95.6,95.8,96.0,96.2], color:"#8cb269", dots:true, width:3, vlab:true, lab:["94.8%","95.2%","95.6%","95.8%","96.0%","96.2%"]},
+          ],
+          legend:[{c:"#7e93ab",t:"╌╌ 기준선(95%)"},{c:"#8cb269",t:"━━ 설비 SLA 준수율"}]},
+      },
+      { type:"metrics", accent:"amber", title:"복지자원 활용률", sub:"복지 예산 대비 실이용률 | 복지 실효성", badge:{lv:"warn",txt:"저조"},
+        boxes:[
+          {lbl:"복지자원 활용률", val:"64%", cls:"warn"},
+          {lbl:"회원권 이용률", val:"52%", cls:"warn"},
+          {lbl:"복지몰 이용률", val:"71%"},
+          {lbl:"목표", val:"80%"},
+        ],
+        msg:{lv:"warn", txt:"<strong>[주의]</strong> 복지자원 활용률 64%로 목표(80%) 하회 — 회원권 등 저이용 자원 정리 및 수요 중심 복지제도 개편 필요"},
+        chart:{kind:"bar", color:"#ffad42", labels:["콘도회원권","골프회원권","복지몰","건강검진"], data:[48,55,71,82],
+          legend:[{c:"#ffad42",t:"■ 복지항목별 이용률(%)"}]},
+      },
+    ],
+
+    /* ── 3.2 대외신인도 ── */
+    "3-2": [
+      { type:"metrics", accent:"miss", title:"신용등급·시공능력평가", sub:"대외 신인도 결과지표 | 수주·조달 경쟁력 직결", badge:{lv:"danger",txt:"하락 리스크"},
+        boxes:[
+          {lbl:"회사채 신용등급", val:"A-", cls:"warn"},
+          {lbl:"등급 전망", val:"부정적", cls:"danger"},
+          {lbl:"시공능력 순위", val:"20위"},
+          {lbl:"전년 순위", val:"18위", cls:"warn"},
+        ],
+        msg:{lv:"danger", txt:"<strong>[센서 경보]</strong> 신용등급 전망 '부정적'·시공능력 순위 2단계 하락 — 등급 하락 시 PF 조달금리 상승→수주경쟁력 하락. 03 자금·01 수주로 전이"},
+        chart:{kind:"bar", color:"#ff6969", labels:["23년","24년","25년","26년"], data:[16,17,18,20],
+          legend:[{c:"#ff6969",t:"■ 연도별 시공능력평가 순위"}]},
+      },
+      { type:"list", accent:"miss", title:"입찰제한·행정처분", sub:"관급 입찰 참가자격 제한 및 행정처분 현황", badge:{lv:"danger",txt:"진행 1건"},
+        listTitle:"입찰제한·행정처분 현황",
+        items:[
+          {st:"fail", name:"중대재해 관련 영업정지 심의 (진행 중)", amt:"리스크", cls:"red"},
+          {st:"warn", name:"○○현장 부실시공 과징금 (이의신청)", amt:"협의중", cls:"amber"},
+          {st:"warn", name:"하도급법 위반 경고 (개선 완료)", amt:"경고", cls:"amber"},
+          {st:"done", name:"환경규제 점검 (적합 판정)", amt:"적합", cls:"green"},
+        ],
+        note:"* 입찰제한 확정 시 관급 수주 직접 타격 — 01 수주 대분류로 리스크 전이",
+      },
+    ],
+
+  },
+};
+
+</script>
+<script>
+  const $ = id => document.getElementById(id);
+  const BADGE = { ok:['st-ok','🟢'], warn:['st-warn','🟡'], danger:['st-danger','🚨'] };
+
+  /* ── 최상위 5대분류 탭 ── */
+  function worstDot(D){
+    if(!D||!D.대분류) return "ok";
+    const rank={ok:0,warn:1,danger:2}; let w="ok";
+    D.대분류.forEach(c=>{ if(rank[c.status.lv]>rank[w]) w=c.status.lv; });
+    return w;
+  }
+  const MAIN = [
+    {no:"01", name:"수주", dot:"danger"},
+    {no:"02", name:"공정", dot:worstDot(typeof GONGJEONG!=='undefined'?GONGJEONG:null)},
+    {no:"03", name:"자금", dot:worstDot(typeof JAGEUM!=='undefined'?JAGEUM:null)},
+    {no:"04", name:"이익", dot:worstDot(typeof IIK!=='undefined'?IIK:null)},
+    {no:"05", name:"운영", dot:worstDot(typeof UNYEONG!=='undefined'?UNYEONG:null)},
+  ];
+
+  function buildMainTabs(){
+    $('maintabs').innerHTML = MAIN.map((m,i)=>
+      `<div class="maintab${i===0?' active':''}" id="mt-${i+1}" onclick="selectMain(${i+1})">
+        <span class="mt-dot dot-${m.dot}"></span>
+        <div class="mt-no">${m.no}</div><div class="mt-name">${m.name}</div>
+      </div>`).join('');
+  }
+
+  function selectMain(n){
+    document.querySelectorAll('.maintab').forEach((el,i)=>el.classList.toggle('active',i===n-1));
+    document.querySelectorAll('.dv').forEach(el=>el.classList.remove('on'));
+    const target = $('stage-'+n);
+    if(target) target.classList.add('on');
+    if(n===1) setTimeout(fitIframe, 50);
+  }
+
+  /* ══════════ 차트 엔진 ══════════ */
+  function lineChart(el, series, maxY, labels, cardChart) {
+    const minY = (cardChart && cardChart.minY !== undefined) ? cardChart.minY : 0;
+    const rangeY = (maxY - minY) || 1;
+    const w=600, h=215, padX=30, padY=22, dw=w-padX*2, dh=h-padY*2, n=labels.length;
+    const xs=i=>padX+i*(dw/(n-1)), ys=v=>padY+dh-((v-minY)/rangeY)*dh;
+    let grid='', lbl='';
+    labels.forEach((m,i)=>{
+      grid+=`<line x1="${xs(i)}" y1="${padY}" x2="${xs(i)}" y2="${padY+dh}" stroke="#16322f" stroke-width="1"/>`;
+      lbl+=`<text x="${xs(i)}" y="${h-3}" fill="#8fa4bd" font-size="10.5" text-anchor="middle">${m}</text>`;
+    });
+    let paths='', dots='', vt='';
+    series.forEach(s=>{
+      let d='', seen=0;
+      s.data.forEach((v,i)=>{
+        if(v===null||v===undefined) return;
+        d+=(d?' L':'M')+` ${xs(i)} ${ys(v)}`;
+        if(s.dots) dots+=`<circle cx="${xs(i)}" cy="${ys(v)}" r="3.5" fill="${s.color}" stroke="#0d1f1d" stroke-width="2"/>`;
+        if(s.vlab){
+          seen++;
+          if(!(s.vskip && seen<=s.vskip)){
+            const txt = s.lab ? s.lab[i] : v;
+            vt+=`<text x="${xs(i)}" y="${s.below?ys(v)+17:ys(v)-9}" fill="${s.color}" font-size="9.5" font-weight="700" text-anchor="middle">${txt}</text>`;
+          }
+        }
+      });
+      paths+=`<path d="${d}" stroke="${s.color}" stroke-width="${s.width||2.5}" fill="none" stroke-dasharray="${s.dash||''}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    });
+    el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${grid}${paths}${dots}${vt}${lbl}</svg>`;
+  }
+
+  function barChart(el, data, labels, color) {
+    const maxY=Math.max(...data)*1.25, w=600, h=215, padX=30, padY=18, dw=w-padX*2, dh=h-padY*2, bw=dw/data.length*0.55;
+    let bars='', lbl='';
+    data.forEach((v,i)=>{
+      const x=padX+i*(dw/data.length)+(dw/data.length-bw)/2, bh=(v/maxY)*dh;
+      bars+=`<rect x="${x}" y="${padY+dh-bh}" width="${bw}" height="${bh}" rx="4" fill="${color}" opacity="0.85"/>`;
+      bars+=`<text x="${x+bw/2}" y="${padY+dh-bh-6}" fill="${color}" font-size="10" font-weight="700" text-anchor="middle">${v}</text>`;
+      lbl+=`<text x="${x+bw/2}" y="${h-2}" fill="#8fa4bd" font-size="10" text-anchor="middle">${labels[i]}</text>`;
+    });
+    el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${bars}${lbl}</svg>`;
+  }
+
+  /* ══════════ 카드 렌더링 헬퍼 ══════════ */
+  function badgeHtml(b){ return `<div class="badge ${BADGE[b.lv][0]}">${BADGE[b.lv][1]} ${b.txt}</div>`; }
+  
+  function taskItem(it){
+    const icon = it.st==='done'?'<span class="icon-done">✔</span>':it.st==='warn'?'<span class="icon-warn">●</span>':'<span class="icon-fail">⚠</span>';
+    const nm = it.st==='fail'?`<strong style="color:#ffb3ad">${it.name}</strong>`:it.name;
+    return `<div class="task-item ${it.st}"><div class="left">${icon} ${nm}</div>${it.amt?`<span class="amt ${it.cls||''}">${it.amt}</span>`:''}</div>`;
+  }
+
+  function cardHtml(card, cid){
+    const accent = card.accent||'amber';
+    let inner = `<div class="panel-head"><div><div class="p-title">${card.title}</div><div class="p-sub">${card.sub||''}</div></div>`;
+    if(card.hasOutTab) {
+      inner += `<div style="display:flex;gap:6px;align-items:center;">
+        <button class="scn-btn active" style="padding:4px 12px;font-size:13px;cursor:pointer;">자재</button>
+        <button class="scn-btn" style="padding:4px 12px;font-size:13px;opacity:0.4;cursor:not-allowed;" title="외주 데이터 준비 중">외주</button>
+        ${card.badge?badgeHtml(card.badge):''}
+      </div></div>`;
+    } else {
+      inner += `${card.badge?badgeHtml(card.badge):''}</div>`;
+    }
+
+    if(card.boxes){
+      const c3Cls = card.boxes.length===3 ? 'c3' : '';
+      inner += `<div class="num-dashboard ${c3Cls}">`+card.boxes.map((b, bi)=>`
+        <div class="num-box ${b.cls||''}">
+          <div class="num-lbl" id="${card.type==='metrics_c21' && bi<3 ? 'm21-lbl'+(bi+1) : ''}">${b.lbl}</div>
+          <div class="num-val ${b.cls||''}" id="${card.type==='metrics_c21' && bi<3 ? 'm21-val'+(bi+1) : ''}">${b.val}</div>
+        </div>
+      `).join('')+`</div>`;
+    }
+
+    if(card.msg){ inner += `<div class="warning-msg ${card.msg.lv==='ok'?'safe':card.msg.lv}">${card.msg.txt}</div>`; }
+
+    if(card.items){
+      inner += `<div class="tracker-box">${card.listTitle?`<div class="tracker-title">${card.listTitle}</div>`:''}<div class="task-list">${card.items.map(taskItem).join('')}</div></div>`;
+    }
+
+    if(card.type === 'metrics_c21') {
+      inner += `<div class="chart-container" style="display:flex;flex-direction:column;gap:10px;flex-grow:1;min-height:300px;">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;background:var(--deep);border-radius:8px;border:1px solid var(--border);">
+          <span style="font-size:12.5px;font-weight:700;color:var(--sub);margin-right:4px;">품목 선택:</span>
+          ${MAT_DATA.items.map(m => `
+            <button class="scn-btn ${activeMats[m.id]?'active':''}" id="mat-btn-${m.id}" onclick="toggleMat('${m.id}')" style="padding:4px 10px;font-size:12px;">
+              ${m.shape} ${m.name}
+            </button>
+          `).join('')}
+        </div>
+        <div class="svg-canvas" id="${cid}" style="min-height:280px;width:100%;">${getChart21SvgHtml()}</div>
+      </div>`;
+    }
+
+    if(card.type === 'bd_table') {
+      inner += `<div class="tracker-box">
+        <div class="tracker-title">주요 자재/하도급 입찰계약 절감 현황 (공급가 1.0억원 이상)</div>
+        <div id="bd-list-box">${getBDListHtml()}</div>
+      </div>`;
+    }
+
+    if(card.chart){
+      const lg = (card.chart.legend||[]).map(l=>`<span style="color:${l.c};">${l.t}</span>`).join('');
+      inner += `<div class="chart-container"><div class="custom-legend">${lg}</div><div class="svg-canvas" id="${cid}"></div></div>`;
+    }
+
+    if(card.note){ inner += `<div class="note">${card.note}</div>`; }
+
+    return `<div class="card ${accent} flex-col">${inner}</div>`;
+  }
+
+  /* ══════════ 대분류/중분류 렌더 ══════════ */
+  function renderGeneric(mountId, D){
+    const root = $(mountId);
+    if(!root) return;
+    let html = `<div class="sub-head"><div class="sub-h-title">${D.meta.부제}</div><div class="sub-h-title">${D.meta.기준}</div></div>`;
+    html += `<div class="sub-tabs" id="${mountId}-subtabs"></div><div class="content" id="${mountId}-content"></div>`;
+    root.innerHTML = html;
+
+    const catbar = document.createElement('div');
+    catbar.style.cssText='display:flex;gap:12px;padding:18px 36px 0;';
+    D.대분류.forEach((c,ci)=>{
+      const el=document.createElement('div');
+      el.style.cssText='flex:1;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;cursor:pointer;position:relative;transition:all .16s;';
+      el.innerHTML=`<div style="font-size:12px;color:var(--sub);font-weight:700;">대분류 ${ci+1}</div>
+        <div style="font-size:19px;font-weight:800;margin-top:3px;">${c.name}</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:5px;">${c.desc}</div>
+        <div class="badge ${BADGE[c.status.lv][0]}" style="position:absolute;top:14px;right:16px;font-size:11px;padding:4px 9px;">${c.status.txt}</div>`;
+      el.onmouseover=()=>el.style.borderColor='var(--amber)';
+      el.onmouseout=()=>{ if(!el.dataset.active) el.style.borderColor='var(--border)'; };
+      el.onclick=()=>selectGCat(mountId, D, ci+1);
+      el.id=`${mountId}-cat-${ci+1}`;
+      catbar.appendChild(el);
+    });
+    root.insertBefore(catbar, root.children[1] || null);
+
+    root._data = D;
+    selectGCat(mountId, D, 1);
+  }
+
+  function selectGCat(mountId, D, ci){
+    D.대분류.forEach((_,i)=>{
+      const el=$(`${mountId}-cat-${i+1}`);
+      if(!el) return;
+      const on = (i===ci-1);
+      el.dataset.active = on?'1':'';
+      el.style.borderColor = on?'var(--amber)':'var(--border)';
+      el.style.background = on?'linear-gradient(180deg, rgba(255,173,66,0.10), rgba(255,173,66,0.02))':'var(--card)';
+    });
+    const subs = D.중분류[String(ci)]||[];
+    const box = $(`${mountId}-subtabs`);
+    if(box){
+      box.innerHTML='';
+      subs.forEach((s,i)=>{
+        const b=document.createElement('div');
+        b.className='sub-tab';
+        b.textContent=s.name;
+        b.id=`${mountId}-tab-${s.id}`;
+        b.onclick=()=>selectGScreen(mountId, D, s.id);
+        box.appendChild(b);
+      });
+    }
+    if(subs.length>0) selectGScreen(mountId, D, subs[0].id);
+  }
+
+  /* ══════════ 2.1 자재 단가 변동률 데이터 & 차트 ══════════ */
+  const MAT_DATA = {
+    labels: ["20년(기준)","21년","22년","23년","24년","25년","26년(현재)"],
+    items: [
+      { id:"total", name:"종합 인덱스", shape:"●", color:"#ff4d4d", dash:"", line:[100,118.5,138.2,146.4,152.0,156.8,162.5], cum:"+62.5%", yr:"+7.2%", defaultOn:true },
+      { id:"cable", name:"케이블", shape:"▲", color:"#ffaa00", dash:"5,5", line:[100,133.6,181.5,176.2,203.6,238.7,315.1], cum:"+215.1%", yr:"+32.0%", defaultOn:true },
+      { id:"cement", name:"시멘트", shape:"■", color:"#38bdf8", dash:"5,5", line:[100,122.0,137.3,161.0,161.0,161.0,176.3], cum:"+76.3%", yr:"+9.5%", defaultOn:true },
+      { id:"remital", name:"레미탈", shape:"◆", color:"#4ade80", dash:"3,3", line:[100,103.6,130.4,160.7,160.7,162.5,153.6], cum:"+53.6%", yr:"-5.5%", defaultOn:true },
+      { id:"gypsum", name:"석고보드", shape:"★", color:"#c084fc", dash:"3,3", line:[100,100.0,132.8,141.3,141.3,141.3,148.9], cum:"+48.9%", yr:"+5.4%", defaultOn:true },
+      { id:"pipe", name:"강관류", shape:"⬡", color:"#facc15", dash:"3,3", line:[100,109.0,158.6,142.8,121.4,115.3,99.1], cum:"-0.9%", yr:"+7.8%", defaultOn:true },
+      { id:"conduit", name:"강제전선관", shape:"+", color:"#22d3ee", dash:"3,3", line:[100,109.0,158.7,142.9,131.4,115.4,121.0], cum:"+21.0%", yr:"+4.8%", defaultOn:true },
+    ]
+  };
+
+  let activeMats = {};
+  MAT_DATA.items.forEach(m => { activeMats[m.id] = m.defaultOn; });
+
+  let lastC21Cid = null;
+  let currMaxVal21 = 330;
+
+  function toggleMat(id) {
+    activeMats[id] = !activeMats[id];
+    const btn = $(`mat-btn-${id}`);
+    const m = MAT_DATA.items.find(x => x.id === id);
+    if(btn && m){
+      btn.classList.toggle('active', activeMats[id]);
+    }
+
+    const lbl1 = $(`m21-lbl1`);
+    const val1 = $(`m21-val1`);
+    const lbl2 = $(`m21-lbl2`);
+    const val2 = $(`m21-val2`);
+    const val3 = $(`m21-val3`);
+
+    if(activeMats[id] && id !== 'total'){
+      if(lbl1) lbl1.textContent = `${m.name} 2020년 대비 상승률`;
+      if(val1) val1.textContent = m.cum;
+      if(lbl2) lbl2.textContent = `${m.name} 전년 대비 상승률`;
+      if(val2) val2.textContent = m.yr;
+    } else {
+      if(lbl1) lbl1.textContent = `2020년 대비 누적 상승률`;
+      if(val1) val1.textContent = `+62.5%`;
+      if(lbl2) lbl2.textContent = `전년 대비 상승률`;
+      if(val2) val2.textContent = `+7.2%`;
+    }
+
+    // Dynamic 손익 영향액 (추정) sign logic
+    const activeList = MAT_DATA.items.filter(item => activeMats[item.id] && item.id !== 'total');
+    let totalImpact = 0;
+    if(activeList.length === 0 || MAT_DATA.items.filter(item => activeMats[item.id]).length === MAT_DATA.items.length) {
+      totalImpact = -176;
+    } else {
+      activeList.forEach(item => {
+        const cumNum = parseFloat(item.cum.replace('%',''));
+        if(!isNaN(cumNum)) {
+          totalImpact -= Math.round(cumNum * 0.8 * 10) / 10;
+        }
+      });
+    }
+
+    if(val3) {
+      const signFmt = totalImpact > 0 ? `+${totalImpact.toFixed(1)}억원` : (totalImpact < 0 ? `${totalImpact.toFixed(1)}억원` : `0.0억원`);
+      val3.textContent = signFmt;
+      val3.className = `num-val ${totalImpact < 0 ? 'danger' : 'ok'}`;
+    }
+
+    drawChart21(lastC21Cid);
+  }
+
+  function getChart21SvgHtml(w=580, h=280) {
+    const padL = 35, padR = 25, padT = 20, padB = 25;
+    const chartW = w - padL - padR;
+    const chartH = h - padT - padB;
+
+    const activeList = MAT_DATA.items.filter(m => activeMats[m.id]);
+    let targetMax = 180;
+
+    if(activeList.length > 0) {
+      let maxDataVal = 0;
+      activeList.forEach(m => {
+        const itemMax = Math.max(...m.line);
+        if(itemMax > maxDataVal) maxDataVal = itemMax;
+      });
+      if(maxDataVal > 190) {
+        targetMax = 330;
+      } else {
+        targetMax = 190;
+      }
+    }
+
+    const maxVal = targetMax;
+    const minVal = 80;
+
+    const xStep = chartW / (MAT_DATA.labels.length - 1);
+    const getY = (val) => padT + chartH - ((val - minVal) / (maxVal - minVal)) * chartH;
+
+    let svg = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="overflow:visible;">`;
+
+    const gridSteps = maxVal > 200 ? [100, 150, 200, 250, 300] : [100, 120, 140, 160, 180];
+    gridSteps.forEach(v => {
+      const y = getY(v);
+      svg += `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="3,3" style="transition: all 0.4s ease-in-out;" />`;
+      svg += `<text x="${padL-8}" y="${y+4}" fill="var(--sub)" font-size="10" text-anchor="end" style="transition: all 0.4s ease-in-out;">${v}</text>`;
+    });
+
+    // X Labels
+    MAT_DATA.labels.forEach((lbl, i) => {
+      const x = padL + i * xStep;
+      svg += `<text x="${x}" y="${h-4}" fill="var(--sub)" font-size="11" text-anchor="middle">${lbl}</text>`;
+    });
+
+    // Draw active lines & markers
+    activeList.forEach(m => {
+      let d = '';
+      m.line.forEach((v, i) => {
+        const x = padL + i * xStep;
+        const y = getY(v);
+        d += (d ? ' L' : 'M') + ` ${x} ${y}`;
+      });
+      svg += `<path d="${d}" fill="none" stroke="${m.color}" stroke-width="${m.id==='total'?3.5:2.5}" stroke-dasharray="${m.dash||''}" stroke-linecap="round" stroke-linejoin="round" style="transition: all 0.4s ease-in-out;" />`;
+
+      m.line.forEach((v, i) => {
+        const x = padL + i * xStep;
+        const y = getY(v);
+        if(m.shape === '●') {
+          svg += `<circle cx="${x}" cy="${y}" r="${m.id==='total'?5:4}" fill="${m.color}" stroke="var(--card)" stroke-width="1.5" style="transition: all 0.4s ease-in-out;" />`;
+        } else if(m.shape === '▲') {
+          svg += `<polygon points="${x},${y-5} ${x-4},${y+4} ${x+4},${y+4}" fill="${m.color}" style="transition: all 0.4s ease-in-out;" />`;
+        } else if(m.shape === '■') {
+          svg += `<rect x="${x-4}" y="${y-4}" width="8" height="8" fill="${m.color}" style="transition: all 0.4s ease-in-out;" />`;
+        } else if(m.shape === '◆') {
+          svg += `<polygon points="${x},${y-5} ${x+4},${y} ${x},${y+5} ${x-4},${y}" fill="${m.color}" style="transition: all 0.4s ease-in-out;" />`;
+        } else if(m.shape === '★') {
+          svg += `<text x="${x}" y="${y+4}" fill="${m.color}" font-size="12" text-anchor="middle" style="transition: all 0.4s ease-in-out;">★</text>`;
+        } else if(m.shape === '⬡') {
+          svg += `<circle cx="${x}" cy="${y}" r="4" fill="none" stroke="${m.color}" stroke-width="2" style="transition: all 0.4s ease-in-out;" />`;
+        } else {
+          svg += `<text x="${x}" y="${y+4}" fill="${m.color}" font-size="13" font-weight="900" text-anchor="middle" style="transition: all 0.4s ease-in-out;">+</text>`;
+        }
+      });
+    });
+
+    svg += `</svg>`;
+    return svg;
+  }
+
+  function drawChart21(cid) {
+    if(cid) lastC21Cid = cid;
+    const targetId = cid || lastC21Cid || 'c21-svg-box';
+    let box = $(targetId);
+    if(!box) box = $('c21-svg-box');
+    if(!box) return;
+
+    const w = box.clientWidth || 580;
+    box.innerHTML = getChart21SvgHtml(w, 280);
+  }
+
+  const RAW_BD_ALL = [
+    { cat:"시험구기", site:"여주 무신사 물류센터", budget:0.1, bid:0.1, sav:0.0, rate:9.3, vendor:"현대정밀산업(주)" },
+    { cat:"폼관", site:"평택 주기장 및 유도로", budget:2.0, bid:1.7, sav:0.4, rate:18.3, vendor:"원기업(주)" },
+    { cat:"인조화강석블럭", site:"다이소 세종 온라인", budget:0.2, bid:0.2, sav:0.0, rate:20.8, vendor:"(주)팔팔콘크리트" },
+    { cat:"천연화강석경계석", site:"김포 한강 시네폴리스", budget:3.9, bid:3.6, sav:0.3, rate:7.6, vendor:"동아석재산업(주)" },
+    { cat:"가스보일러", site:"대전 레에브 스위첸", budget:0.3, bid:0.2, sav:0.1, rate:32.8, vendor:"(주)경동나비엔" },
+    { cat:"변압기", site:"수서 역세권 3블록", budget:2.0, bid:1.9, sav:0.1, rate:3.0, vendor:"(주)티피에스엔지니어링" },
+    { cat:"탱크류", site:"오퍼스 한강 스위첸", budget:1.1, bid:0.8, sav:0.2, rate:22.2, vendor:"(주)성지기공" },
+    { cat:"컨테인먼트", site:"화성 데이터센터 2차", budget:24.2, bid:17.4, sav:6.8, rate:28.1, vendor:"(주)알엠케이" },
+    { cat:"위생기구류", site:"대전 레에브 스위첸", budget:0.4, bid:0.4, sav:0.0, rate:8.9, vendor:"(주)하나도기타일" },
+    { cat:"연동컨테이너", site:"항남역 그로브 스위첸", budget:2.0, bid:2.0, sav:0.0, rate:0.5, vendor:"세옴모빌(주)" },
+    { cat:"락볼트", site:"강릉~제진 철도 5공구", budget:1.5, bid:1.4, sav:0.1, rate:6.8, vendor:"삼진스틸산업(주)" },
+    { cat:"보일러류", site:"수서 역세권 3블록", budget:1.5, bid:1.5, sav:0.0, rate:0.7, vendor:"(주)동방보일러" },
+    { cat:"냉동기", site:"수서 역세권 3블록", budget:4.5, bid:4.3, sav:0.2, rate:4.9, vendor:"(주)센추리" },
+    { cat:"H-BEAM", site:"항남역 그로브 스위첸", budget:6.0, bid:6.0, sav:0.0, rate:0.1, vendor:"광일철강(주)" },
+    { cat:"H-BEAM", site:"중앙대학교 서울캠퍼스", budget:5.3, bid:5.2, sav:0.2, rate:2.9, vendor:"동국제강(주)포항공장" },
+    { cat:"부스덕트", site:"수서 역세권 3블록", budget:2.1, bid:2.1, sav:0.0, rate:0.6, vendor:"(주)우진기전" },
+    { cat:"콤프류(냉수)", site:"화성 데이터센터 2차", budget:1.4, bid:1.4, sav:0.1, rate:4.3, vendor:"효성피엠(주)" },
+    { cat:"창호철물", site:"성수동 스틱 업무시설", budget:1.1, bid:0.5, sav:0.6, rate:52.6, vendor:"굿선하드웨어(주)" },
+    { cat:"수배전반", site:"수서 역세권 3블록", budget:5.7, bid:5.5, sav:0.3, rate:4.5, vendor:"세영이엔지(주)" },
+    { cat:"냉각탑", site:"수서 역세권 4블록", budget:4.0, bid:4.0, sav:0.0, rate:0.7, vendor:"(주)성지공조기술" },
+    { cat:"피형강관", site:"울진 500kV 동해안", budget:5.7, bid:5.6, sav:0.2, rate:3.0, vendor:"(주)중원" },
+    { cat:"외산자재", site:"평택 주기장 및 유도로", budget:21.5, bid:19.9, sav:1.6, rate:7.3, vendor:"에스엔씨씨퍼시픽(주)" },
+    { cat:"조명기구", site:"여의도 오피스텔 신축", budget:2.5, bid:2.4, sav:0.1, rate:2.9, vendor:"(주)영진이엘" },
+    { cat:"하향식피난사다리", site:"오퍼스 한강 스위첸", budget:3.4, bid:2.8, sav:0.5, rate:16.1, vendor:"(주)제이투테크" },
+    { cat:"연동컨테이너", site:"여주 무신사 물류센터", budget:1.1, bid:1.1, sav:0.0, rate:0.2, vendor:"세옴모빌(주)" },
+    { cat:"위생기구류", site:"여의도 오피스텔 신축", budget:4.4, bid:4.3, sav:0.1, rate:1.0, vendor:"(주)하나도기타일" },
+    { cat:"발전기", site:"수서 역세권 3블록", budget:1.5, bid:1.4, sav:0.2, rate:11.6, vendor:"(주)대흥기전" },
+    { cat:"펌프류(냉각수)", site:"화성 데이터센터 2차", budget:2.6, bid:2.5, sav:0.1, rate:4.2, vendor:"(주)선정테크" },
+    { cat:"고로슬래그시멘트", site:"김포한강시네폴리스", budget:3.3, bid:2.8, sav:0.5, rate:16.1, vendor:"(학)국민학원사업본부" },
+    { cat:"시스템가구", site:"대전 르에브 스위첸", budget:7.7, bid:4.7, sav:3.0, rate:38.7, vendor:"(주)에스엠디엔지" },
+    { cat:"펌프류", site:"수서역세권 4블록", budget:1.4, bid:0.9, sav:0.5, rate:34.3, vendor:"펌프랜드주식회사" },
+    { cat:"욕실장", site:"대전 르에브 스위첸", budget:4.9, bid:2.2, sav:2.7, rate:55.3, vendor:"(주)통인" },
+    { cat:"경질우레탄폼보드", site:"오퍼스 한강 스위첸", budget:3.2, bid:3.2, sav:0.0, rate:0.2, vendor:"(주)경동원" },
+    { cat:"사인물", site:"다이소 세종 온라인센터", budget:2.2, bid:1.8, sav:0.4, rate:17.1, vendor:"(주)큰솔애드컴" },
+    { cat:"사인물", site:"다이소 세종 허브센터", budget:2.4, bid:2.3, sav:0.1, rate:3.3, vendor:"(주)큰솔애드컴" },
+    { cat:"경질우레탄폼보드", site:"울진 500kV 동해안", budget:1.1, bid:1.1, sav:0.0, rate:0.0, vendor:"(주)에코인슈텍" },
+    { cat:"분전반", site:"화성 데이터센터 2차", budget:14.3, bid:13.9, sav:0.4, rate:3.0, vendor:"(주)플릿스인더스트리" },
+    { cat:"경질우레탄폼보드", site:"수서역세권 3블록", budget:4.2, bid:3.7, sav:0.4, rate:10.6, vendor:"(주)경동원" },
+    { cat:"갱폼", site:"오퍼스 한강 스위첸", budget:7.2, bid:8.2, sav:-1.1, rate:-14.9, vendor:"삼목에스폼(주)" },
+    { cat:"탱크류", site:"수서역세권 3블록", budget:1.2, bid:1.1, sav:0.1, rate:6.6, vendor:"(주)수엔텍이앤씨" },
+    { cat:"위생기구류", site:"다이소 세종 허브센터", budget:1.0, bid:1.0, sav:0.0, rate:2.7, vendor:"(주)하나도기타일" },
+    { cat:"공조기", site:"KCC실리콘 전주공장", budget:2.0, bid:1.8, sav:0.3, rate:13.0, vendor:"한국공조엔지니어링(주)" },
+    { cat:"알루미늄폼", site:"오퍼스 한강 스위첸", budget:8.6, bid:6.0, sav:2.6, rate:29.9, vendor:"삼목에스폼(주)" },
+    { cat:"부스덕트", site:"화성 데이터센터 2차", budget:67.5, bid:67.3, sav:0.2, rate:0.3, vendor:"(주)두루툴산" },
+    { cat:"창호철물", site:"여의도 오피스텔 신축", budget:1.2, bid:1.2, sav:0.0, rate:2.7, vendor:"(주)아린엠에이치씨" },
+    { cat:"갱폼", site:"수서역세권 4블록", budget:1.7, bid:1.2, sav:0.5, rate:28.3, vendor:"삼목에스폼(주)" },
+    { cat:"강관", site:"여주~원주 복선 1공구", budget:60.8, bid:60.2, sav:0.6, rate:1.0, vendor:"(주)포스코인터내셔널" },
+    { cat:"스티로폼", site:"안성 당목리 물류센터", budget:1.5, bid:1.4, sav:0.1, rate:4.8, vendor:"(주)케이씨씨서울영업소" },
+    { cat:"일반/주방가구", site:"대전 르에브 스위첸", budget:56.5, bid:51.2, sav:5.3, rate:9.4, vendor:"(주)우아미" },
+    { cat:"창호철물", site:"대전 르에브 스위첸", budget:4.4, bid:4.3, sav:0.1, rate:1.6, vendor:"고려하드웨어(주)" },
+    { cat:"저압반", site:"화성 데이터센터 2차", budget:66.3, bid:66.2, sav:0.1, rate:0.1, vendor:"(주)디투엔지니어링" },
+    { cat:"고압반", site:"화성 데이터센터 2차", budget:12.3, bid:12.2, sav:0.0, rate:0.2, vendor:"세영엔지니어링(주)" },
+    { cat:"PVC이중벽관", site:"대전 르에브 스위첸", budget:1.1, bid:0.9, sav:0.2, rate:21.8, vendor:"(주)뉴복" },
+    { cat:"수배전반", site:"수서역세권 4블록", budget:7.5, bid:6.5, sav:1.1, rate:13.9, vendor:"세영이엔지(주)" },
+    { cat:"일반/주방가구", site:"대전 르에브 스위첸", budget:60.1, bid:54.5, sav:5.6, rate:9.4, vendor:"(주)우아미" },
+    { cat:"스틸그레이팅", site:"포항 탄약고 교체공사", budget:3.1, bid:2.2, sav:0.9, rate:29.5, vendor:"(주)부아공영" },
+    { cat:"부스덕트", site:"수서역세권 4블록", budget:4.2, bid:3.4, sav:0.8, rate:18.1, vendor:"주식회사에스엔유티씨" },
+    { cat:"수배전반", site:"대전 르에브 스위첸", budget:7.9, bid:6.4, sav:1.5, rate:19.4, vendor:"금성전설산업(주)" },
+    { cat:"발전기", site:"대전 르에브 스위첸", budget:4.1, bid:4.0, sav:0.1, rate:2.3, vendor:"(주)대흥기전" },
+    { cat:"발전기", site:"수서역세권 4블록", budget:1.6, bid:1.4, sav:0.2, rate:15.2, vendor:"(주)대흥기전" },
+    { cat:"원격검침", site:"대전 르에브 스위첸", budget:1.7, bid:1.3, sav:0.4, rate:25.6, vendor:"(주)그린플로우" },
+    { cat:"탱크류", site:"대전 르에브 스위첸", budget:2.4, bid:1.7, sav:0.8, rate:31.4, vendor:"(주)베셀" },
+    { cat:"공조기", site:"수서역세권 4블록", budget:7.8, bid:6.0, sav:1.9, rate:24.0, vendor:"(주)휴민에어텍" },
+    { cat:"연동컨테이너", site:"진천 광혜원 물류센터", budget:1.5, bid:1.5, sav:0.0, rate:0.8, vendor:"뉴월드인텍(주)" },
+    { cat:"STS관", site:"수서역세권 3블록", budget:1.9, bid:1.7, sav:0.2, rate:10.1, vendor:"(주)상일기업" },
+    { cat:"콤프류", site:"대전 르에브 스위첸", budget:2.3, bid:1.2, sav:1.0, rate:44.5, vendor:"(주)선정테크" },
+    { cat:"대공간팬", site:"다이소 세종 허브센터", budget:4.1, bid:3.1, sav:1.0, rate:24.9, vendor:"(주)가인이앤씨" },
+    { cat:"대공간팬", site:"다이소 세종 온라인센터", budget:1.3, bid:0.9, sav:0.4, rate:29.9, vendor:"(주)가인이앤씨" },
+    { cat:"H-BEAM", site:"강릉~제진 철도 5공구", budget:3.7, bid:3.3, sav:0.4, rate:10.4, vendor:"동국제강(주)포항공장" },
+    { cat:"조명기구(일반)", site:"수서역세권 4블록", budget:1.4, bid:1.0, sav:0.4, rate:25.3, vendor:"(주)영진이엘" },
+    { cat:"수배전반", site:"여의도 오피스텔 신축", budget:4.1, bid:2.9, sav:1.2, rate:28.3, vendor:"(주)금성콘트롤" },
+    { cat:"변압기", site:"수서 역세권 4블록", budget:2.5, bid:2.5, sav:0.0, rate:1.0, vendor:"(주)근우" },
+    { cat:"변압기", site:"여의도 오피스텔 신축", budget:1.0, bid:1.0, sav:0.0, rate:2.5, vendor:"(주)근우" },
+    { cat:"주방기구", site:"다이소 세종 허브센터", budget:2.0, bid:1.6, sav:0.4, rate:19.9, vendor:"(주)매롬" },
+  ];
+
+  let bdSortMode = 'sav'; // 'sav' | 'rate'
+  let bdSortOrder = 'desc'; // 'desc' | 'asc'
+
+  function setBDSortMode(mode) {
+    if(bdSortMode === mode) {
+      bdSortOrder = (bdSortOrder === 'desc' ? 'asc' : 'desc');
+    } else {
+      bdSortMode = mode;
+      bdSortOrder = 'desc';
+    }
+    renderBDList();
+  }
+
+  function getBDListHtml() {
+    let list = [...RAW_BD_ALL].filter(c => c.budget >= 1.0);
+    if(bdSortMode === 'sav') {
+      list.sort((a,b) => bdSortOrder === 'desc' ? b.sav - a.sav : a.sav - b.sav);
+    } else {
+      list.sort((a,b) => bdSortOrder === 'desc' ? b.rate - a.rate : a.rate - b.rate);
+    }
+    let sorted = list.slice(0, 10);
+
+    const savArrow = bdSortMode === 'sav' ? (bdSortOrder === 'desc' ? '▼' : '▲') : '⇅';
+    const rateArrow = bdSortMode === 'rate' ? (bdSortOrder === 'desc' ? '▼' : '▲') : '⇅';
+
+    return '<table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">' +
+      '<thead><tr style="background:var(--bg);border-bottom:1px solid var(--border);color:var(--sub);">' +
+      '<th style="padding:8px 10px;">품목</th>' +
+      '<th style="padding:8px 10px;">공사현장</th>' +
+      '<th style="padding:8px 10px;text-align:right;">예산금액</th>' +
+      '<th style="padding:8px 10px;text-align:right;">품의금액</th>' +
+      '<th style="padding:8px 10px;text-align:right;">' +
+        '<button onclick="setBDSortMode(\'sav\')" class="scn-btn ' + (bdSortMode==='sav'?'active':'') + '" style="padding:2px 8px;font-size:12px;margin:0;">' +
+          '절감액 ' + savArrow +
+        '</button>' +
+      '</th>' +
+      '<th style="padding:8px 10px;text-align:right;">' +
+        '<button onclick="setBDSortMode(\'rate\')" class="scn-btn ' + (bdSortMode==='rate'?'active':'') + '" style="padding:2px 8px;font-size:12px;margin:0;">' +
+          '절감율 ' + rateArrow +
+        '</button>' +
+      '</th>' +
+      '<th style="padding:8px 10px;">계약 업체명</th>' +
+      '</tr></thead><tbody>' +
+      sorted.map(c =>
+        '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">' +
+        '<td style="padding:8px 10px;font-weight:700;color:var(--text);">' + c.cat + '</td>' +
+        '<td style="padding:8px 10px;color:var(--sub);">' + c.site + '</td>' +
+        '<td style="padding:8px 10px;text-align:right;">' + c.budget.toFixed(1) + '억</td>' +
+        '<td style="padding:8px 10px;text-align:right;">' + c.bid.toFixed(1) + '억</td>' +
+        '<td style="padding:8px 10px;text-align:right;font-weight:800;color:' + (c.sav>=0?'var(--actual)':'var(--miss)') + ';">' + c.sav.toFixed(1) + '억</td>' +
+        '<td style="padding:8px 10px;text-align:right;font-weight:800;color:' + (c.rate>=0?'var(--actual)':'var(--miss)') + ';">' + c.rate.toFixed(1) + '%</td>' +
+        '<td style="padding:8px 10px;color:var(--sub);">' + c.vendor + '</td>' +
+        '</tr>'
+      ).join('') +
+      '</tbody></table>';
+  }
+
+  function renderBDList() {
+    const box = $('bd-list-box');
+    if(box) box.innerHTML = getBDListHtml();
+  }
+
+  /* ══════════ 화면 전환 렌더러 ══════════ */
+  function selectGScreen(mountId, D, sid){
+    document.querySelectorAll(`#${mountId}-subtabs .sub-tab`).forEach(el=>el.classList.toggle('active', el.id===`${mountId}-tab-${sid}`));
+    const cards = D.화면[sid]||[];
+    const content = $(`${mountId}-content`);
+    if(!content) return;
+    const cids = cards.map((_,i)=>`${mountId}-${sid}-c${i}`);
+    content.innerHTML = `<div class="panel-grid">`+cards.map((c,i)=>cardHtml(c,cids[i])).join('')+`</div>`;
+
+    cards.forEach((c,i)=>{
+      if(c.type==='metrics_c21'){ drawChart21(cids[i]); return; }
+      if(c.type==='bd_table'){ renderBDList(); return; }
+      if(c.type==='sim'){ renderSim(c, cids[i]); return; }
+      if(!c.chart) return;
+      const el=$(cids[i]); if(!el) return;
+      if(c.chart.kind==='line') lineChart(el, c.chart.series, c.chart.maxY, c.chart.labels, c.chart);
+      else if(c.chart.kind==='bar') barChart(el, c.chart.data, c.chart.labels, c.chart.color);
+    });
+  }
+
+  /* ── 미분양 손실 시뮬레이터 (현장별 표) ── */
+  function renderSim(card, cid){
+    const 현장 = card.현장;
+    const fmt = v => Math.round(v).toLocaleString();
+    function calc(rate){
+      return 현장.map(s=>{
+        const 미분양 = s.도급 * (1 - s.분양률/100);
+        const 손실 = 미분양 * rate/100;
+        return { ...s, 미분양, 손실 };
+      });
+    }
+    function update(rate){
+      const rows = calc(rate);
+      const 총미분양 = rows.reduce((a,r)=>a+r.미분양,0);
+      const 총손실 = rows.reduce((a,r)=>a+r.손실,0);
+      const 총도급 = rows.reduce((a,r)=>a+r.도급,0);
+
+      const unsoldEl = $(`${cid}-unsold`);
+      if(unsoldEl) unsoldEl.textContent = `${fmt(총미분양)}억 (${(총미분양/총도급*100).toFixed(1)}%)`;
+      const lossEl = $(`${cid}-loss`);
+      if(lossEl) lossEl.textContent = `${fmt(총손실)}억원`;
+
+      card.할인율.forEach(r=> { const b=$(`${cid}-b-${r}`); if(b) b.classList.toggle('active', r===rate); });
+
+      const tbody = $(`${cid}-tbody`);
+      if(!tbody) return;
+      const sorted = [...rows].sort((a,b)=>b.손실-a.손실);
+      const maxLoss = Math.max(...sorted.map(r=>r.손실), 1);
+
+      tbody.innerHTML = sorted.map(r=>{
+        const pct = Math.round(r.손실/maxLoss*100);
+        const lossTxt = r.손실>0 ? `-${fmt(r.손실)}억` : '0억';
+        return `<tr>
+          <td style="font-weight:700;">${r.name}</td>
+          <td>${r.cat}</td>
+          <td class="num">${fmt(r.도급)}억</td>
+          <td class="num">${r.분양률}%</td>
+          <td class="num danger" style="font-weight:700;">${fmt(r.미분양)}억</td>
+          <td class="num danger" style="font-weight:800;color:var(--miss);">${lossTxt}</td>
+          <td style="width:140px;">
+            <div style="background:var(--bg);height:8px;border-radius:4px;overflow:hidden;">
+              <div style="background:var(--miss);height:100%;width:${pct}%;"></div>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    const btns = $(`${cid}-btns`);
+    if(btns){
+      btns.innerHTML = `<span class="scn-lbl">할인율 시나리오 (전 현장 일괄 적용)</span>` +
+        card.할인율.map(r=>`<button class="scn-btn${r===15?' active':''}" id="${cid}-b-${r}" onclick="window._simUpd['${cid}'](${r})">${r}% 할인</button>`).join('');
+    }
+
+    window._simUpd = window._simUpd || {};
+    window._simUpd[cid] = update;
+    update(15);
+  }
+
+  /* ── 수주 iframe 높이 동적 맞춤 ── */
+  function fitIframe(){
+    const f = $('iframe-수주');
+    if(!f) return;
+    try {
+      const doc = f.contentWindow ? f.contentWindow.document : f.contentDocument;
+      if(!doc) return;
+      const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight);
+      f.style.height = h + 'px';
+    } catch(e){}
+  }
+  window.addEventListener('resize', fitIframe);
+
+  /* ══════════ 초기화 ══════════ */
+  buildMainTabs();
+  renderGeneric('mount-2', GONGJEONG);
+  renderGeneric('mount-3', JAGEUM);
+  renderGeneric('mount-4', IIK);
+  renderGeneric('mount-5', UNYEONG);
+  selectMain(1);
+</script>
